@@ -106,9 +106,23 @@ zotero-mcp setup --semantic-config-only
 ```
 
 **Available Embedding Models:**
-- **Default (all-MiniLM-L6-v2)**: Free, runs locally, good for most use cases
-- **OpenAI**: Better quality, requires API key (`text-embedding-3-small` or `text-embedding-3-large`)
-- **Gemini**: Better quality, requires API key (`models/text-embedding-004` or experimental models)
+- **MiniLM (default / `minilm`)**: Free, runs locally, good for most use cases (`all-MiniLM-L6-v2`)
+- **Qwen (`qwen`)**: Local HuggingFace model (`Qwen/Qwen3-Embedding-0.6B`)
+- **EmbeddingGemma (`embeddinggemma`)**: Local HuggingFace model (`google/embeddinggemma-300m`)
+- **Custom HuggingFace (`custom-hf`)**: Any local/remote HF model ID via `--embedding-model-name`
+- **OpenAI (`openai`)**: API-based (`text-embedding-3-small` or `text-embedding-3-large`)
+- **Gemini (`gemini`)**: API-based (`models/text-embedding-004` or experimental models)
+
+You can preselect models from the CLI:
+
+```bash
+# Non-default local model
+zotero-mcp setup --semantic-config-only --embedding-model qwen
+
+# Custom HuggingFace model
+zotero-mcp setup --semantic-config-only --embedding-model custom-hf \
+  --embedding-model-name sentence-transformers/all-mpnet-base-v2
+```
 
 **Update Frequency Options:**
 - **Manual**: Update only when you run `zotero-mcp update-db`
@@ -265,6 +279,8 @@ zotero-mcp serve --transport stdio|streamable-http|sse
 # Setup and configuration
 zotero-mcp setup --help                    # Get help on setup options
 zotero-mcp setup --semantic-config-only    # Configure only semantic search
+zotero-mcp setup --semantic-config-only --embedding-model minilm|qwen|embeddinggemma|custom-hf|openai|gemini
+zotero-mcp setup --semantic-config-only --embedding-model-name MODEL_NAME
 zotero-mcp setup-info                      # Show installation path and config info for MCP clients
 
 # Updates and maintenance
