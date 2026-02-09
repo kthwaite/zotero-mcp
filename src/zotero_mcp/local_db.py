@@ -10,7 +10,6 @@ import sqlite3
 import platform
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 
 from .utils import is_local_mode
@@ -19,6 +18,7 @@ from .utils import is_local_mode
 @dataclass
 class ZoteroItem:
     """Represents a Zotero item with text content for semantic search."""
+
     item_id: int
     key: str
     item_type_id: int
@@ -60,7 +60,11 @@ class ZoteroItem:
 
         if self.fulltext:
             # Truncate fulltext to avoid overly long documents
-            truncated_fulltext = self.fulltext[:5000] + "..." if len(self.fulltext) > 5000 else self.fulltext
+            truncated_fulltext = (
+                self.fulltext[:5000] + "..."
+                if len(self.fulltext) > 5000
+                else self.fulltext
+            )
             parts.append(f"Content: {truncated_fulltext}")
 
         return "\n\n".join(parts)
@@ -109,7 +113,12 @@ class LocalZoteroReader:
             db_path = Path.home() / "Zotero" / "zotero.sqlite"
             if not db_path.exists():
                 # Fallback to XP/2000 location
-                db_path = Path(os.path.expanduser("~/Documents and Settings")) / os.getenv("USERNAME", "") / "Zotero" / "zotero.sqlite"
+                db_path = (
+                    Path(os.path.expanduser("~/Documents and Settings"))
+                    / os.getenv("USERNAME", "")
+                    / "Zotero"
+                    / "zotero.sqlite"
+                )
         else:  # Linux and others
             db_path = Path.home() / "Zotero" / "zotero.sqlite"
 
@@ -139,8 +148,7 @@ class LocalZoteroReader:
     def _iter_parent_attachments(self, parent_item_id: int):
         """Yield tuples (attachment_key, path, content_type) for a parent item."""
         conn = self._get_connection()
-        query = (
-            """
+        query = """
             SELECT ia.itemID as attachmentItemID,
                    ia.parentItemID as parentItemID,
                    ia.path as path,
@@ -150,11 +158,12 @@ class LocalZoteroReader:
             JOIN items att ON att.itemID = ia.itemID
             WHERE ia.parentItemID = ?
             """
-        )
         for row in conn.execute(query, (parent_item_id,)):
             yield row["attachmentKey"], row["path"], row["contentType"]
 
-    def _resolve_attachment_path(self, attachment_key: str, zotero_path: str) -> Path | None:
+    def _resolve_attachment_path(
+        self, attachment_key: str, zotero_path: str
+    ) -> Path | None:
         """Resolve a Zotero attachment path like 'storage:filename.pdf' to a filesystem path."""
         if not zotero_path:
             return None
@@ -171,6 +180,7 @@ class LocalZoteroReader:
         """Extract text from a PDF using pdfminer with a page cap to avoid stalls."""
         try:
             from pdfminer.high_level import extract_text  # type: ignore
+
             # Determine page cap: config value > env > default (10)
             if isinstance(self.pdf_max_pages, int) and self.pdf_max_pages > 0:
                 maxpages = self.pdf_max_pages
@@ -190,6 +200,7 @@ class LocalZoteroReader:
         # Try markitdown first
         try:
             from markitdown import MarkItDown
+
             md = MarkItDown()
             result = md.convert(str(file_path))
             return result.text_content or ""
@@ -198,6 +209,7 @@ class LocalZoteroReader:
         # Fallback using a simple parser
         try:
             from bs4 import BeautifulSoup  # type: ignore
+
             html = file_path.read_text(errors="ignore")
             return BeautifulSoup(html, "html.parser").get_text(" ")
         except Exception:
@@ -247,7 +259,11 @@ class LocalZoteroReader:
         if not text:
             return None
         # Truncate to keep embeddings reasonable
-        source = "pdf" if target.suffix.lower() == ".pdf" else ("html" if target.suffix.lower() in {".html", ".htm"} else "file")
+        source = (
+            "pdf"
+            if target.suffix.lower() == ".pdf"
+            else ("html" if target.suffix.lower() in {".html", ".htm"} else "file")
+        )
         return (text[:10000], source)
 
     def close(self):
@@ -280,7 +296,9 @@ class LocalZoteroReader:
         )
         return cursor.fetchone()[0]
 
-    def get_items_with_text(self, limit: int | None = None, include_fulltext: bool = False) -> list[ZoteroItem]:
+    def get_items_with_text(
+        self, limit: int | None = None, include_fulltext: bool = False
+    ) -> list[ZoteroItem]:
         """
         Get all items with their text content for semantic search.
 
@@ -358,20 +376,27 @@ class LocalZoteroReader:
 
         for row in cursor:
             item = ZoteroItem(
-                item_id=row['itemID'],
-                key=row['key'],
-                item_type_id=row['itemTypeID'],
-                item_type=row['item_type'],
-                doi=row['doi'],
-                title=row['title'],
-                abstract=row['abstract'],
-                creators=row['creators'],
-                fulltext=(res := (self._extract_fulltext_for_item(row['itemID']) if include_fulltext else None)) and res[0],
+                item_id=row["itemID"],
+                key=row["key"],
+                item_type_id=row["itemTypeID"],
+                item_type=row["item_type"],
+                doi=row["doi"],
+                title=row["title"],
+                abstract=row["abstract"],
+                creators=row["creators"],
+                fulltext=(
+                    res := (
+                        self._extract_fulltext_for_item(row["itemID"])
+                        if include_fulltext
+                        else None
+                    )
+                )
+                and res[0],
                 fulltext_source=res[1] if include_fulltext and res else None,
-                notes=row['notes'],
-                extra=row['extra'],
-                date_added=row['dateAdded'],
-                date_modified=row['dateModified']
+                notes=row["notes"],
+                extra=row["extra"],
+                date_added=row["dateAdded"],
+                date_modified=row["dateModified"],
             )
             items.append(item)
 
@@ -456,3 +481,4 @@ def is_local_db_available() -> bool:
         reader.close()
         return True
     return False
+

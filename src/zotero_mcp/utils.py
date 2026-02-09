@@ -1,8 +1,8 @@
-from typing import List, Dict
 import os
 import re
 
 html_re = re.compile(r"<.*?>")
+
 
 def format_creators(creators: list[dict[str, str]]) -> str:
     """
@@ -32,6 +32,7 @@ def is_local_mode() -> bool:
     value = os.getenv("ZOTERO_LOCAL", "")
     return value.lower() in {"true", "yes", "1"}
 
+
 def clean_html(raw_html: str) -> str:
     """
     Remove HTML tags from a string.
@@ -43,3 +44,4 @@ def clean_html(raw_html: str) -> str:
     """
     clean_text = re.sub(html_re, "", raw_html)
     return clean_text
+

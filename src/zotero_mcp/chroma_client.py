@@ -10,7 +10,7 @@ import os
 import sys
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any
 import logging
 
 import chromadb
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 @contextmanager
 def suppress_stdout():
     """Context manager to suppress stdout temporarily."""
-    with open(os.devnull, 'w') as devnull:
+    with open(os.devnull, "w") as devnull:
         old_stdout = sys.stdout
         sys.stdout = devnull
         try:
@@ -35,7 +35,12 @@ def suppress_stdout():
 class OpenAIEmbeddingFunction(EmbeddingFunction):
     """Custom OpenAI embedding function for ChromaDB."""
 
-    def __init__(self, model_name: str = "text-embedding-3-small", api_key: str | None = None, base_url: str | None = None):
+    def __init__(
+        self,
+        model_name: str = "text-embedding-3-small",
+        api_key: str | None = None,
+        base_url: str | None = None,
+    ):
         self.model_name = model_name
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.base_url = base_url or os.getenv("OPENAI_BASE_URL")
@@ -44,6 +49,7 @@ class OpenAIEmbeddingFunction(EmbeddingFunction):
 
         try:
             import openai
+
             client_kwargs = {"api_key": self.api_key}
             if self.base_url:
                 client_kwargs["base_url"] = self.base_url
@@ -57,19 +63,23 @@ class OpenAIEmbeddingFunction(EmbeddingFunction):
 
     def __call__(self, input: Documents) -> Embeddings:
         """Generate embeddings using OpenAI API."""
-        response = self.client.embeddings.create(
-            model=self.model_name,
-            input=input
-        )
+        response = self.client.embeddings.create(model=self.model_name, input=input)
         return [data.embedding for data in response.data]
 
 
 class GeminiEmbeddingFunction(EmbeddingFunction):
     """Custom Gemini embedding function for ChromaDB using google-genai."""
 
-    def __init__(self, model_name: str = "models/text-embedding-004", api_key: str | None = None, base_url: str | None = None):
+    def __init__(
+        self,
+        model_name: str = "models/text-embedding-004",
+        api_key: str | None = None,
+        base_url: str | None = None,
+    ):
         self.model_name = model_name
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        self.api_key = (
+            api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        )
         self.base_url = base_url or os.getenv("GEMINI_BASE_URL")
         if not self.api_key:
             raise ValueError("Gemini API key is required")
@@ -77,6 +87,7 @@ class GeminiEmbeddingFunction(EmbeddingFunction):
         try:
             from google import genai
             from google.genai import types
+
             client_kwargs = {"api_key": self.api_key}
             if self.base_url:
                 http_options = types.HttpOptions(baseUrl=self.base_url)
@@ -98,9 +109,8 @@ class GeminiEmbeddingFunction(EmbeddingFunction):
                 model=self.model_name,
                 contents=[text],
                 config=self.types.EmbedContentConfig(
-                    task_type="retrieval_document",
-                    title="Zotero library document"
-                )
+                    task_type="retrieval_document", title="Zotero library document"
+                ),
             )
             embeddings.append(response.embeddings[0].values)
         return embeddings
@@ -114,10 +124,13 @@ class HuggingFaceEmbeddingFunction(EmbeddingFunction):
 
         try:
             from sentence_transformers import SentenceTransformer
+
             logger.info(f"Loading embedding model: {model_name}")
             self.model = SentenceTransformer(model_name, trust_remote_code=True)
         except ImportError:
-            raise ImportError("sentence-transformers package is required for HuggingFace embeddings. Install with: pip install sentence-transformers")
+            raise ImportError(
+                "sentence-transformers package is required for HuggingFace embeddings. Install with: pip install sentence-transformers"
+            )
 
     def name(self) -> str:
         """Return the name of this embedding function."""
@@ -132,11 +145,13 @@ class HuggingFaceEmbeddingFunction(EmbeddingFunction):
 class ChromaClient:
     """ChromaDB client for Zotero semantic search."""
 
-    def __init__(self,
-                 collection_name: str = "zotero_library",
-                 persist_directory: str | None = None,
-                 embedding_model: str = "default",
-                 embedding_config: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        collection_name: str = "zotero_library",
+        persist_directory: str | None = None,
+        embedding_model: str = "default",
+        embedding_config: dict[str, Any] | None = None,
+    ):
         """
         Initialize ChromaDB client.
 
@@ -163,10 +178,7 @@ class ChromaClient:
         with suppress_stdout():
             self.client = chromadb.PersistentClient(
                 path=self.persist_directory,
-                settings=Settings(
-                    anonymized_telemetry=False,
-                    allow_reset=True
-                )
+                settings=Settings(anonymized_telemetry=False, allow_reset=True),
             )
 
             # Set up embedding function
@@ -178,14 +190,18 @@ class ChromaClient:
                 self.collection = self.client.get_collection(name=self.collection_name)
 
                 # Check if embedding functions are compatible
-                existing_ef = getattr(self.collection, '_embedding_function', None)
+                existing_ef = getattr(self.collection, "_embedding_function", None)
                 if existing_ef is not None:
-                    existing_name = getattr(existing_ef, 'name', lambda: 'default')()
-                    new_name = getattr(self.embedding_function, 'name', lambda: 'default')()
+                    existing_name = getattr(existing_ef, "name", lambda: "default")()
+                    new_name = getattr(
+                        self.embedding_function, "name", lambda: "default"
+                    )()
 
                     if existing_name != new_name:
                         # Log to stderr instead of letting ChromaDB print to stdout
-                        sys.stderr.write(f"ChromaDB: Collection exists with different embedding function: {existing_name} vs {new_name}\n")
+                        sys.stderr.write(
+                            f"ChromaDB: Collection exists with different embedding function: {existing_name} vs {new_name}\n"
+                        )
                         # Use the existing collection's embedding function to avoid conflicts
                         self.embedding_function = existing_ef
 
@@ -193,29 +209,41 @@ class ChromaClient:
                 # Collection doesn't exist, create it
                 self.collection = self.client.create_collection(
                     name=self.collection_name,
-                    embedding_function=self.embedding_function
+                    embedding_function=self.embedding_function,
                 )
 
     def _create_embedding_function(self) -> EmbeddingFunction:
         """Create the appropriate embedding function based on configuration."""
         if self.embedding_model == "openai":
-            model_name = self.embedding_config.get("model_name", "text-embedding-3-small")
+            model_name = self.embedding_config.get(
+                "model_name", "text-embedding-3-small"
+            )
             api_key = self.embedding_config.get("api_key")
             base_url = self.embedding_config.get("base_url")
-            return OpenAIEmbeddingFunction(model_name=model_name, api_key=api_key, base_url=base_url)
+            return OpenAIEmbeddingFunction(
+                model_name=model_name, api_key=api_key, base_url=base_url
+            )
 
         elif self.embedding_model == "gemini":
-            model_name = self.embedding_config.get("model_name", "models/text-embedding-004")
+            model_name = self.embedding_config.get(
+                "model_name", "models/text-embedding-004"
+            )
             api_key = self.embedding_config.get("api_key")
             base_url = self.embedding_config.get("base_url")
-            return GeminiEmbeddingFunction(model_name=model_name, api_key=api_key, base_url=base_url)
+            return GeminiEmbeddingFunction(
+                model_name=model_name, api_key=api_key, base_url=base_url
+            )
 
         elif self.embedding_model == "qwen":
-            model_name = self.embedding_config.get("model_name", "Qwen/Qwen3-Embedding-0.6B")
+            model_name = self.embedding_config.get(
+                "model_name", "Qwen/Qwen3-Embedding-0.6B"
+            )
             return HuggingFaceEmbeddingFunction(model_name=model_name)
 
         elif self.embedding_model == "embeddinggemma":
-            model_name = self.embedding_config.get("model_name", "google/embeddinggemma-300m")
+            model_name = self.embedding_config.get(
+                "model_name", "google/embeddinggemma-300m"
+            )
             return HuggingFaceEmbeddingFunction(model_name=model_name)
 
         elif self.embedding_model not in ["default", "openai", "gemini"]:
@@ -226,10 +254,9 @@ class ChromaClient:
             # Use ChromaDB's default embedding function (all-MiniLM-L6-v2)
             return chromadb.utils.embedding_functions.DefaultEmbeddingFunction()
 
-    def add_documents(self,
-                     documents: list[str],
-                     metadatas: list[dict[str, Any]],
-                     ids: list[str]) -> None:
+    def add_documents(
+        self, documents: list[str], metadatas: list[dict[str, Any]], ids: list[str]
+    ) -> None:
         """
         Add documents to the collection.
 
@@ -239,20 +266,15 @@ class ChromaClient:
             ids: List of unique IDs for each document
         """
         try:
-            self.collection.add(
-                documents=documents,
-                metadatas=metadatas,
-                ids=ids
-            )
+            self.collection.add(documents=documents, metadatas=metadatas, ids=ids)
             logger.info(f"Added {len(documents)} documents to ChromaDB collection")
         except Exception as e:
             logger.error(f"Error adding documents to ChromaDB: {e}")
             raise
 
-    def upsert_documents(self,
-                        documents: list[str],
-                        metadatas: list[dict[str, Any]],
-                        ids: list[str]) -> None:
+    def upsert_documents(
+        self, documents: list[str], metadatas: list[dict[str, Any]], ids: list[str]
+    ) -> None:
         """
         Upsert (update or insert) documents to the collection.
 
@@ -262,21 +284,19 @@ class ChromaClient:
             ids: List of unique IDs for each document
         """
         try:
-            self.collection.upsert(
-                documents=documents,
-                metadatas=metadatas,
-                ids=ids
-            )
+            self.collection.upsert(documents=documents, metadatas=metadatas, ids=ids)
             logger.info(f"Upserted {len(documents)} documents to ChromaDB collection")
         except Exception as e:
             logger.error(f"Error upserting documents to ChromaDB: {e}")
             raise
 
-    def search(self,
-               query_texts: list[str],
-               n_results: int = 10,
-               where: dict[str, Any] | None = None,
-               where_document: dict[str, Any] | None = None) -> dict[str, Any]:
+    def search(
+        self,
+        query_texts: list[str],
+        n_results: int = 10,
+        where: dict[str, Any] | None = None,
+        where_document: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Search for similar documents.
 
@@ -294,9 +314,11 @@ class ChromaClient:
                 query_texts=query_texts,
                 n_results=n_results,
                 where=where,
-                where_document=where_document
+                where_document=where_document,
             )
-            logger.info(f"Semantic search returned {len(results.get('ids', [[]])[0])} results")
+            logger.info(
+                f"Semantic search returned {len(results.get('ids', [[]])[0])} results"
+            )
             return results
         except Exception as e:
             logger.error(f"Error performing semantic search: {e}")
@@ -324,7 +346,7 @@ class ChromaClient:
                 "name": self.collection_name,
                 "count": count,
                 "embedding_model": self.embedding_model,
-                "persist_directory": self.persist_directory
+                "persist_directory": self.persist_directory,
             }
         except Exception as e:
             logger.error(f"Error getting collection info: {e}")
@@ -333,7 +355,7 @@ class ChromaClient:
                 "count": 0,
                 "embedding_model": self.embedding_model,
                 "persist_directory": self.persist_directory,
-                "error": str(e)
+                "error": str(e),
             }
 
     def reset_collection(self) -> None:
@@ -341,8 +363,7 @@ class ChromaClient:
         try:
             self.client.delete_collection(name=self.collection_name)
             self.collection = self.client.create_collection(
-                name=self.collection_name,
-                embedding_function=self.embedding_function
+                name=self.collection_name, embedding_function=self.embedding_function
             )
             logger.info(f"Reset ChromaDB collection '{self.collection_name}'")
         except Exception as e:
@@ -353,7 +374,7 @@ class ChromaClient:
         """Check if a document exists in the collection."""
         try:
             result = self.collection.get(ids=[doc_id])
-            return len(result['ids']) > 0
+            return len(result["ids"]) > 0
         except Exception:
             return False
 
@@ -369,8 +390,8 @@ class ChromaClient:
         """
         try:
             result = self.collection.get(ids=[doc_id], include=["metadatas"])
-            if result['ids'] and result['metadatas']:
-                return result['metadatas'][0]
+            if result["ids"] and result["metadatas"]:
+                return result["metadatas"][0]
             return None
         except Exception:
             return None
@@ -390,7 +411,7 @@ def create_chroma_client(config_path: str | None = None) -> ChromaClient:
     config = {
         "collection_name": "zotero_library",
         "embedding_model": "default",
-        "embedding_config": {}
+        "embedding_config": {},
     }
 
     # Load configuration from file if it exists
@@ -415,7 +436,7 @@ def create_chroma_client(config_path: str | None = None) -> ChromaClient:
         if openai_api_key:
             config["embedding_config"] = {
                 "api_key": openai_api_key,
-                "model_name": openai_model
+                "model_name": openai_model,
             }
             if openai_base_url:
                 config["embedding_config"]["base_url"] = openai_base_url
@@ -427,7 +448,7 @@ def create_chroma_client(config_path: str | None = None) -> ChromaClient:
         if gemini_api_key:
             config["embedding_config"] = {
                 "api_key": gemini_api_key,
-                "model_name": gemini_model
+                "model_name": gemini_model,
             }
             if gemini_base_url:
                 config["embedding_config"]["base_url"] = gemini_base_url
@@ -435,5 +456,5 @@ def create_chroma_client(config_path: str | None = None) -> ChromaClient:
     return ChromaClient(
         collection_name=config["collection_name"],
         embedding_model=config["embedding_model"],
-        embedding_config=config["embedding_config"]
+        embedding_config=config["embedding_config"],
     )
