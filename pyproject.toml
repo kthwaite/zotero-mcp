@@ -29,6 +29,7 @@ dependencies = [
     "openai>=1.0.0",
     "google-genai>=0.7.0",
     "typer>=0.21.1",
+    "textual>=0.68.0",
 ]
 
 

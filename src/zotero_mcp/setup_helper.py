@@ -788,6 +788,7 @@ def run_setup(
     semantic_config_only: bool = False,
     embedding_model: EmbeddingModelOption | None = None,
     embedding_model_name: str | None = None,
+    tui: bool = False,
 ) -> int:
     """Run setup helper logic and return an exit code."""
     # Determine config path for semantic search
@@ -795,6 +796,74 @@ def run_setup(
     semantic_config_path = semantic_config_dir / "config.json"
     existing_semantic_config = load_semantic_search_config(semantic_config_path)
     semantic_config_changed = False
+
+    # Optional full-screen Textual wizard
+    if tui:
+        try:
+            from zotero_mcp.setup_tui import (
+                SetupWizardDefaults,
+                run_setup_textual_wizard,
+            )
+        except ImportError:
+            print(
+                "Textual setup UI is not available. Install 'textual' and retry, "
+                "or run setup without --tui."
+            )
+            return 1
+
+        defaults = SetupWizardDefaults(
+            no_local=no_local,
+            no_claude=no_claude,
+            api_key=api_key,
+            library_id=library_id,
+            library_type=library_type,
+            embedding_model=embedding_model,
+            embedding_model_name=embedding_model_name,
+            skip_semantic_search=skip_semantic_search,
+        )
+
+        try:
+            wizard_result = run_setup_textual_wizard(
+                existing_semantic_config=existing_semantic_config,
+                semantic_config_only=semantic_config_only,
+                defaults=defaults,
+            )
+        except Exception as e:
+            print(f"Error running setup TUI: {e}")
+            return 1
+
+        if wizard_result is None:
+            print("Setup cancelled.")
+            return 1
+
+        no_local = wizard_result.no_local
+        no_claude = wizard_result.no_claude
+        api_key = wizard_result.api_key
+        library_id = wizard_result.library_id
+        library_type = wizard_result.library_type
+
+        if wizard_result.semantic_config is not None:
+            new_semantic_config = wizard_result.semantic_config
+            semantic_config_changed = existing_semantic_config != new_semantic_config
+            existing_semantic_config = new_semantic_config
+            if semantic_config_changed:
+                save_semantic_search_config(
+                    existing_semantic_config, semantic_config_path
+                )
+
+        if semantic_config_only:
+            if semantic_config_changed:
+                print("\nSemantic search configuration complete!")
+                print(f"Configuration saved to: {semantic_config_path}")
+                print("\nTo initialize the database, run: zotero-mcp update-db")
+                return 0
+            print("\nSemantic search configuration left unchanged.")
+            return 0
+
+        # Semantic setup has already been handled in the wizard.
+        skip_semantic_search = True
+        embedding_model = None
+        embedding_model_name = None
 
     # Handle semantic search only configuration
     if semantic_config_only:
@@ -1035,6 +1104,13 @@ def main(
             help="Optional model name override (for qwen/embeddinggemma/openai/gemini) or custom HF model ID",
         ),
     ] = None,
+    tui: Annotated[
+        bool,
+        typer.Option(
+            "--tui",
+            help="Launch full-screen Textual setup wizard",
+        ),
+    ] = False,
 ) -> None:
     """Configure zotero-mcp for Claude Desktop or standalone use."""
     exit_code = run_setup(
@@ -1048,6 +1124,7 @@ def main(
         semantic_config_only=semantic_config_only,
         embedding_model=embedding_model,
         embedding_model_name=embedding_model_name,
+        tui=tui,
     )
     if exit_code != 0:
         raise typer.Exit(code=exit_code)

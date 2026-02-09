@@ -271,6 +271,10 @@ def setup(
             help="Optional model name override (for qwen/embeddinggemma/openai/gemini) or custom HF model ID",
         ),
     ] = None,
+    tui: Annotated[
+        bool,
+        typer.Option("--tui", help="Launch full-screen Textual setup wizard"),
+    ] = False,
 ) -> None:
     """Configure zotero-mcp (Claude Desktop or standalone)."""
     from zotero_mcp.setup_helper import run_setup
@@ -286,6 +290,7 @@ def setup(
         semantic_config_only=semantic_config_only,
         embedding_model=embedding_model,
         embedding_model_name=embedding_model_name,
+        tui=tui,
     )
     if exit_code != 0:
         raise typer.Exit(code=exit_code)
