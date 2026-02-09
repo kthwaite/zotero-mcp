@@ -101,6 +101,9 @@ During setup or separately, configure semantic search:
 # Configure during initial setup (recommended)
 zotero-mcp setup
 
+# Launch full-screen setup wizard (Textual TUI)
+zotero-mcp setup --tui
+
 # Or configure semantic search separately
 zotero-mcp setup --semantic-config-only
 ```
@@ -278,6 +281,7 @@ zotero-mcp serve --transport stdio|streamable-http|sse
 
 # Setup and configuration
 zotero-mcp setup --help                    # Get help on setup options
+zotero-mcp setup --tui                     # Launch full-screen Textual setup wizard
 zotero-mcp setup --semantic-config-only    # Configure only semantic search
 zotero-mcp setup --semantic-config-only --embedding-model minilm|qwen|embeddinggemma|custom-hf|openai|gemini
 zotero-mcp setup --semantic-config-only --embedding-model-name MODEL_NAME
