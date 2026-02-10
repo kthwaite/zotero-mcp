@@ -65,6 +65,47 @@ def test_fetch_annotations_no_results(mock_zotero_with_annotations):
     assert result.annotations == []
 
 
+def test_annotations_tool_delegates_to_service():
+    """The @mcp.tool wrapper calls the service and formats to markdown."""
+    from unittest.mock import MagicMock, patch
+    from zotero_mcp.services.annotations import AnnotationsResult
+
+    fake = AnnotationsResult(
+        annotations=[
+            {
+                "key": "A1",
+                "annotation_type": "highlight",
+                "text": "Important text",
+                "comment": "My note",
+                "color": "#ff0000",
+                "parent_item": "P1",
+                "tags": ["review"],
+                "page": 5,
+                "page_label": "5",
+                "attachment_title": "paper.pdf",
+                "color_category": "Red",
+                "source": "zotero_api",
+                "has_image": False,
+            }
+        ],
+        parent_title="Test Paper",
+    )
+
+    with patch(
+        "zotero_mcp.server.fetch_annotations", return_value=fake
+    ):
+        from zotero_mcp.server import get_annotations
+
+        # Access underlying function (FastMCP wraps with @mcp.tool)
+        fn = get_annotations.fn if hasattr(get_annotations, 'fn') else get_annotations
+        ctx = MagicMock()
+        result = fn(item_key="P1", ctx=ctx)
+
+    assert "Test Paper" in result
+    assert "Important text" in result
+    assert "highlight" in result
+
+
 @pytest.fixture
 def mock_zotero_with_annotations():
     """Mock Zotero client that returns annotations for a known item."""

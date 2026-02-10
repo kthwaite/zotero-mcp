@@ -22,7 +22,7 @@ from zotero_mcp.client import (
     generate_bibtex,
     get_zotero_client,
 )
-from zotero_mcp.services.annotations import AnnotationsResult, fetch_annotations
+from zotero_mcp.services.annotations import fetch_annotations
 from zotero_mcp.services.content import fetch_item_fulltext
 from zotero_mcp.utils import clean_html, format_creators
 
