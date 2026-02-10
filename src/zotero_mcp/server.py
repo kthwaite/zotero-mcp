@@ -18,12 +18,11 @@ from typing import Literal
 from fastmcp import Context, FastMCP
 
 from zotero_mcp.client import (
-    convert_to_markdown,
     format_item_metadata,
     generate_bibtex,
-    get_attachment_details,
     get_zotero_client,
 )
+from zotero_mcp.services.content import fetch_item_fulltext
 from zotero_mcp.utils import clean_html, format_creators
 
 
@@ -305,75 +304,25 @@ def get_item_metadata(
     description="Get the full text content of a Zotero item by its key.",
 )
 def get_item_fulltext(item_key: str, *, ctx: Context) -> str:
-    """
-    Get the full text content of a Zotero item.
-
-    Args:
-        item_key: Zotero item key/ID
-        ctx: MCP context
-
-    Returns:
-        Markdown-formatted item full text
-    """
+    """Get the full text content of a Zotero item."""
     try:
         ctx.info(f"Fetching full text for item {item_key}")
-        zot = get_zotero_client()
+        result = fetch_item_fulltext(item_key)
 
-        # First get the item metadata
-        item = zot.item(item_key)
-        if not item:
-            return f"No item found with key: {item_key}"
+        if result.error and not result.metadata_md:
+            return f"Error: {result.error}"
 
-        # Get item metadata in markdown format
-        metadata = format_item_metadata(item, include_abstract=True)
+        parts = []
+        if result.metadata_md:
+            parts.append(result.metadata_md)
+        if result.fulltext:
+            parts.append(f"## Full Text\n\n{result.fulltext}")
+        elif result.error:
+            parts.append(result.error)
+        else:
+            parts.append("No suitable attachment found for this item.")
 
-        # Try to get attachment details
-        attachment = get_attachment_details(zot, item)
-        if not attachment:
-            return f"{metadata}\n\n---\n\nNo suitable attachment found for this item."
-
-        ctx.info(f"Found attachment: {attachment.key} ({attachment.content_type})")
-
-        # Try fetching full text from Zotero's full text index first
-        try:
-            full_text_data = zot.fulltext_item(attachment.key)
-            if (
-                full_text_data
-                and "content" in full_text_data
-                and full_text_data["content"]
-            ):
-                ctx.info("Successfully retrieved full text from Zotero's index")
-                return (
-                    f"{metadata}\n\n---\n\n## Full Text\n\n{full_text_data['content']}"
-                )
-        except Exception as fulltext_error:
-            ctx.info(f"Couldn't retrieve indexed full text: {str(fulltext_error)}")
-
-        # If we couldn't get indexed full text, try to download and convert the file
-        try:
-            ctx.info(f"Attempting to download and convert attachment {attachment.key}")
-
-            # Download the file to a temporary location
-            import os
-            import tempfile
-
-            with tempfile.TemporaryDirectory() as tmpdir:
-                file_path = os.path.join(
-                    tmpdir, attachment.filename or f"{attachment.key}.pdf"
-                )
-                zot.dump(
-                    attachment.key, filename=os.path.basename(file_path), path=tmpdir
-                )
-
-                if os.path.exists(file_path):
-                    ctx.info(f"Downloaded file to {file_path}, converting to markdown")
-                    converted_text = convert_to_markdown(file_path)
-                    return f"{metadata}\n\n---\n\n## Full Text\n\n{converted_text}"
-                else:
-                    return f"{metadata}\n\n---\n\nFile download failed."
-        except Exception as download_error:
-            ctx.error(f"Error downloading/converting file: {str(download_error)}")
-            return f"{metadata}\n\n---\n\nError accessing attachment: {str(download_error)}"
+        return "\n\n---\n\n".join(parts)
 
     except Exception as e:
         ctx.error(f"Error fetching item full text: {str(e)}")

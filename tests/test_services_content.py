@@ -49,6 +49,32 @@ def test_fetch_fulltext_no_attachment(mock_zotero_client):
     assert result.error is None
 
 
+def test_fulltext_tool_uses_service():
+    """The @mcp.tool wrapper delegates to the service and returns markdown."""
+    from unittest.mock import MagicMock, patch
+    from zotero_mcp.services.content import FulltextResult
+
+    fake_result = FulltextResult(
+        metadata_md="# Metadata",
+        fulltext="The full text.",
+    )
+
+    with patch(
+        "zotero_mcp.server.fetch_item_fulltext", return_value=fake_result
+    ) as mock_fetch:
+        from zotero_mcp.server import get_item_fulltext
+
+        # FastMCP @mcp.tool() wraps the function; access the underlying fn
+        fn = get_item_fulltext.fn if hasattr(get_item_fulltext, "fn") else get_item_fulltext
+
+        ctx = MagicMock()
+        result = fn(item_key="ABC123", ctx=ctx)
+
+    mock_fetch.assert_called_once_with("ABC123")
+    assert "# Metadata" in result
+    assert "The full text." in result
+
+
 @pytest.fixture
 def mock_zotero_client():
     """Mock pyzotero client with a single item that has indexed fulltext."""
