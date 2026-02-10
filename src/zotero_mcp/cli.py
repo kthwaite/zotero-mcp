@@ -21,6 +21,27 @@ app = typer.Typer(
     add_completion=False,
 )
 
+server_app = typer.Typer(help="Run the MCP server.")
+config_app = typer.Typer(help="Initialize and inspect client configuration.")
+index_app = typer.Typer(help="Manage semantic search index state.")
+embeddings_app = typer.Typer(help="Warm embedding model caches.")
+self_app = typer.Typer(help="Manage zotero-mcp installation metadata.")
+
+app.add_typer(server_app, name="server")
+app.add_typer(config_app, name="config")
+app.add_typer(index_app, name="index")
+app.add_typer(embeddings_app, name="embeddings")
+app.add_typer(self_app, name="self")
+
+
+def _warn_deprecated_command(old_command: str, new_command: str) -> None:
+    """Emit a warning for a deprecated command alias."""
+    typer.secho(
+        f"Warning: '{old_command}' is deprecated; use '{new_command}' instead.",
+        fg=typer.colors.YELLOW,
+        err=True,
+    )
+
 
 def obfuscate_sensitive_value(value, keep_chars=4):
     """Obfuscate sensitive values by showing only the first few characters."""
@@ -189,8 +210,55 @@ def _default_command(ctx: typer.Context) -> None:
         _run_serve(transport="stdio", host="localhost", port=8000)
 
 
-@app.command()
-def serve(
+def _run_config_init(
+    *,
+    mode: Literal["local", "web"],
+    client_target: Literal["auto", "claude", "standalone"],
+    api_key: str | None,
+    library_id: str | None,
+    library_type: Literal["user", "group"],
+    config: str | None,
+    skip_semantic_search: bool,
+    semantic_config_only: bool,
+    embedding_backend: Literal[
+        "minilm", "qwen", "embeddinggemma", "custom-hf", "openai", "gemini"
+    ]
+    | None,
+    embedding_model: str | None,
+    tui: bool,
+) -> None:
+    """Run setup workflow with normalized option names."""
+    from zotero_mcp.setup_helper import run_setup
+
+    no_local = mode == "web"
+    no_claude = client_target == "standalone"
+
+    if no_claude and config:
+        print("Note: --config is ignored when --client-target=standalone.")
+
+    if embedding_backend == "custom-hf" and not embedding_model:
+        print("Error: --embedding-model is required when --embedding-backend=custom-hf")
+        raise typer.Exit(code=1)
+
+    exit_code = run_setup(
+        no_local=no_local,
+        no_claude=no_claude,
+        api_key=api_key,
+        library_id=library_id,
+        library_type=library_type,
+        config_path=None if no_claude else config,
+        skip_semantic_search=skip_semantic_search,
+        semantic_config_only=semantic_config_only,
+        embedding_model=embedding_backend,
+        embedding_model_name=embedding_model,
+        tui=tui,
+    )
+    if exit_code != 0:
+        raise typer.Exit(code=exit_code)
+
+
+@server_app.command("start")
+def server_start(
     transport: Annotated[
         Literal["stdio", "streamable-http", "sse"],
         typer.Option(help="Transport to use (default: stdio)"),
@@ -212,7 +280,112 @@ def serve(
     _run_serve(transport=transport, host=host, port=port)
 
 
-@app.command()
+@app.command(hidden=True)
+def serve(
+    transport: Annotated[
+        Literal["stdio", "streamable-http", "sse"],
+        typer.Option(help="Transport to use (default: stdio)"),
+    ] = "stdio",
+    host: Annotated[
+        str,
+        typer.Option(
+            help="Host to bind to for SSE/streamable-http transport (default: localhost)"
+        ),
+    ] = "localhost",
+    port: Annotated[
+        int,
+        typer.Option(
+            help="Port to bind to for SSE/streamable-http transport (default: 8000)"
+        ),
+    ] = 8000,
+) -> None:
+    """Deprecated alias for `server start`."""
+    _warn_deprecated_command("zotero-mcp serve", "zotero-mcp server start")
+    _run_serve(transport=transport, host=host, port=port)
+
+
+@config_app.command("init")
+def config_init(
+    mode: Annotated[
+        Literal["local", "web"],
+        typer.Option(
+            "--mode",
+            help="Zotero connection mode (default: local)",
+        ),
+    ] = "local",
+    client_target: Annotated[
+        Literal["auto", "claude", "standalone"],
+        typer.Option(
+            "--client-target",
+            help="Config destination (default: auto -> Claude Desktop config)",
+        ),
+    ] = "auto",
+    api_key: Annotated[
+        str | None,
+        typer.Option(help="Zotero API key (needed for --mode web)"),
+    ] = None,
+    library_id: Annotated[
+        str | None,
+        typer.Option(help="Zotero library ID (needed for --mode web)"),
+    ] = None,
+    library_type: Annotated[
+        Literal["user", "group"],
+        typer.Option(help="Zotero library type (needed for --mode web)"),
+    ] = "user",
+    config: Annotated[
+        str | None,
+        typer.Option("--config", help="Path to Claude Desktop config file"),
+    ] = None,
+    skip_semantic_search: Annotated[
+        bool,
+        typer.Option(
+            "--skip-semantic-search", help="Skip semantic search configuration"
+        ),
+    ] = False,
+    semantic_config_only: Annotated[
+        bool,
+        typer.Option(
+            "--semantic-config-only",
+            help="Only configure semantic search, skip Zotero setup",
+        ),
+    ] = False,
+    embedding_backend: Annotated[
+        Literal["minilm", "qwen", "embeddinggemma", "custom-hf", "openai", "gemini"]
+        | None,
+        typer.Option(
+            "--embedding-backend",
+            help="Embedding backend for semantic search",
+        ),
+    ] = None,
+    embedding_model: Annotated[
+        str | None,
+        typer.Option(
+            "--embedding-model",
+            help="Optional model override (or required HF model ID for custom-hf)",
+        ),
+    ] = None,
+    tui: Annotated[
+        bool,
+        typer.Option("--tui", help="Launch full-screen Textual setup wizard"),
+    ] = False,
+) -> None:
+    """Initialize zotero-mcp client and semantic-search configuration."""
+    _run_config_init(
+        mode=mode,
+        client_target=client_target,
+        api_key=api_key,
+        library_id=library_id,
+        library_type=library_type,
+        config=config,
+        skip_semantic_search=skip_semantic_search,
+        semantic_config_only=semantic_config_only,
+        embedding_backend=embedding_backend,
+        embedding_model=embedding_model,
+        tui=tui,
+    )
+
+
+@app.command(hidden=True)
 def setup(
     no_local: Annotated[
         bool,
@@ -276,53 +449,29 @@ def setup(
         typer.Option("--tui", help="Launch full-screen Textual setup wizard"),
     ] = False,
 ) -> None:
-    """Configure zotero-mcp (Claude Desktop or standalone)."""
-    from zotero_mcp.setup_helper import run_setup
-
-    exit_code = run_setup(
-        no_local=no_local,
-        no_claude=no_claude,
+    """Deprecated alias for `config init`."""
+    _warn_deprecated_command("zotero-mcp setup", "zotero-mcp config init")
+    _run_config_init(
+        mode="web" if no_local else "local",
+        client_target="standalone" if no_claude else "auto",
         api_key=api_key,
         library_id=library_id,
         library_type=library_type,
-        config_path=config_path,
+        config=config_path,
         skip_semantic_search=skip_semantic_search,
         semantic_config_only=semantic_config_only,
-        embedding_model=embedding_model,
-        embedding_model_name=embedding_model_name,
+        embedding_backend=embedding_model,
+        embedding_model=embedding_model_name,
         tui=tui,
     )
-    if exit_code != 0:
-        raise typer.Exit(code=exit_code)
 
 
-@app.command("update-db")
-def update_db(
-    force_rebuild: Annotated[
-        bool,
-        typer.Option("--force-rebuild", help="Force complete rebuild of the database"),
-    ] = False,
-    limit: Annotated[
-        int | None,
-        typer.Option(help="Limit number of items to process (for testing)"),
-    ] = None,
-    fulltext: Annotated[
-        bool,
-        typer.Option(
-            "--fulltext",
-            help="Extract fulltext content from local Zotero database (slower but more comprehensive)",
-        ),
-    ] = False,
-    config_path: Annotated[
-        str | None,
-        typer.Option(help="Path to semantic search configuration file"),
-    ] = None,
-    db_path: Annotated[
-        str | None,
-        typer.Option(
-            help="Path to Zotero database file (zotero.sqlite), overrides config"
-        ),
-    ] = None,
+def _run_index_sync(
+    force_rebuild: bool,
+    limit: int | None,
+    fulltext: bool,
+    config: str | None,
+    db_path: str | None,
 ) -> None:
     """Update semantic search database."""
     setup_zotero_environment()
@@ -331,8 +480,8 @@ def update_db(
 
     # Determine config path
     resolved_config_path = (
-        Path(config_path)
-        if config_path
+        Path(config)
+        if config
         else Path.home() / ".config" / "zotero-mcp" / "config.json"
     )
 
@@ -379,26 +528,87 @@ def update_db(
         raise typer.Exit(code=1)
 
 
-@app.command("download-embeddings")
-def download_embeddings(
-    embedding_model: Annotated[
+@index_app.command("sync")
+def index_sync(
+    force_rebuild: Annotated[
+        bool,
+        typer.Option("--force-rebuild", help="Force complete rebuild of the database"),
+    ] = False,
+    limit: Annotated[
+        int | None,
+        typer.Option(help="Limit number of items to process (for testing)"),
+    ] = None,
+    fulltext: Annotated[
+        bool,
+        typer.Option(
+            "--fulltext",
+            help="Extract fulltext content from local Zotero database (slower but more comprehensive)",
+        ),
+    ] = False,
+    config: Annotated[
+        str | None,
+        typer.Option("--config", help="Path to semantic search configuration file"),
+    ] = None,
+    db_path: Annotated[
         str | None,
         typer.Option(
-            "--embedding-model",
-            help="Embedding model/backend to warm up (minilm, qwen, embeddinggemma, custom-hf, openai, gemini, or a HuggingFace model ID)",
+            help="Path to Zotero database file (zotero.sqlite), overrides config"
         ),
     ] = None,
-    embedding_model_name: Annotated[
-        str | None,
+) -> None:
+    """Update semantic search index."""
+    _run_index_sync(
+        force_rebuild=force_rebuild,
+        limit=limit,
+        fulltext=fulltext,
+        config=config,
+        db_path=db_path,
+    )
+
+
+@app.command("update-db", hidden=True)
+def update_db(
+    force_rebuild: Annotated[
+        bool,
+        typer.Option("--force-rebuild", help="Force complete rebuild of the database"),
+    ] = False,
+    limit: Annotated[
+        int | None,
+        typer.Option(help="Limit number of items to process (for testing)"),
+    ] = None,
+    fulltext: Annotated[
+        bool,
         typer.Option(
-            "--embedding-model-name",
-            help="Optional model name override (for qwen/embeddinggemma/openai/gemini) or custom HF model ID when --embedding-model=custom-hf",
+            "--fulltext",
+            help="Extract fulltext content from local Zotero database (slower but more comprehensive)",
         ),
-    ] = None,
+    ] = False,
     config_path: Annotated[
         str | None,
         typer.Option(help="Path to semantic search configuration file"),
     ] = None,
+    db_path: Annotated[
+        str | None,
+        typer.Option(
+            help="Path to Zotero database file (zotero.sqlite), overrides config"
+        ),
+    ] = None,
+) -> None:
+    """Deprecated alias for `index sync`."""
+    _warn_deprecated_command("zotero-mcp update-db", "zotero-mcp index sync")
+    _run_index_sync(
+        force_rebuild=force_rebuild,
+        limit=limit,
+        fulltext=fulltext,
+        config=config_path,
+        db_path=db_path,
+    )
+
+
+def _run_embeddings_warmup(
+    embedding_backend: str | None,
+    embedding_model: str | None,
+    config: str | None,
 ) -> None:
     """Pre-download local embedding weights to avoid first-run startup lag."""
     setup_zotero_environment()
@@ -412,47 +622,52 @@ def download_embeddings(
 
     # Determine config path
     resolved_config_path = (
-        Path(config_path)
-        if config_path
+        Path(config)
+        if config
         else Path.home() / ".config" / "zotero-mcp" / "config.json"
     )
 
     try:
-        config = load_chroma_config(str(resolved_config_path))
+        config_data = load_chroma_config(str(resolved_config_path))
 
-        resolved_model = str(config.get("embedding_model", "default"))
+        resolved_model = str(config_data.get("embedding_model", "default"))
         configured_model = resolved_model
-        resolved_embedding_config = dict(config.get("embedding_config", {}) or {})
+        resolved_embedding_config = dict(config_data.get("embedding_config", {}) or {})
 
+        cli_backend = embedding_backend.strip() if embedding_backend else None
         cli_model = embedding_model.strip() if embedding_model else None
-        cli_model_name = embedding_model_name.strip() if embedding_model_name else None
 
         # Apply CLI overrides
-        if cli_model:
-            if cli_model == "minilm":
+        if cli_backend:
+            if cli_backend == "minilm":
                 resolved_model = "default"
                 resolved_embedding_config = {}
-            elif cli_model == "custom-hf":
-                if not cli_model_name:
+            elif cli_backend == "custom-hf":
+                if not cli_model:
                     print(
-                        "Error: --embedding-model-name is required when --embedding-model=custom-hf"
+                        "Error: --embedding-model is required when --embedding-backend=custom-hf"
                     )
                     raise typer.Exit(code=1)
-                resolved_model = cli_model_name
+                resolved_model = cli_model
                 resolved_embedding_config = {}
             else:
-                resolved_model = cli_model
+                resolved_model = cli_backend
                 if resolved_model != configured_model:
                     resolved_embedding_config = {}
 
         # Optional model_name override for known model families
-        if cli_model_name and cli_model != "custom-hf":
+        if cli_model and cli_backend != "custom-hf":
             if resolved_model in {"qwen", "embeddinggemma", "openai", "gemini"}:
-                resolved_embedding_config["model_name"] = cli_model_name
-            elif not cli_model:
+                resolved_embedding_config["model_name"] = cli_model
+            elif not cli_backend:
                 print(
-                    "Note: --embedding-model-name was ignored because the configured "
-                    f"embedding model ('{resolved_model}') does not use model_name overrides."
+                    "Note: --embedding-model was ignored because the configured "
+                    f"embedding backend ('{resolved_model}') does not use model overrides."
+                )
+            else:
+                print(
+                    "Note: --embedding-model was ignored for "
+                    f"embedding backend '{resolved_model}'."
                 )
 
         if resolved_model == "openai":
@@ -505,13 +720,68 @@ def download_embeddings(
         raise typer.Exit(code=1)
 
 
-@app.command("db-status")
-def db_status(
+@embeddings_app.command("warmup")
+def embeddings_warmup(
+    embedding_backend: Annotated[
+        str | None,
+        typer.Option(
+            "--embedding-backend",
+            help="Embedding backend to warm up (minilm, qwen, embeddinggemma, custom-hf, openai, gemini)",
+        ),
+    ] = None,
+    embedding_model: Annotated[
+        str | None,
+        typer.Option(
+            "--embedding-model",
+            help="Optional model override (or required HF model ID for custom-hf)",
+        ),
+    ] = None,
+    config: Annotated[
+        str | None,
+        typer.Option("--config", help="Path to semantic search configuration file"),
+    ] = None,
+) -> None:
+    """Pre-download local embedding model weights."""
+    _run_embeddings_warmup(
+        embedding_backend=embedding_backend,
+        embedding_model=embedding_model,
+        config=config,
+    )
+
+
+@app.command("download-embeddings", hidden=True)
+def download_embeddings(
+    embedding_model: Annotated[
+        str | None,
+        typer.Option(
+            "--embedding-model",
+            help="Embedding model/backend to warm up (minilm, qwen, embeddinggemma, custom-hf, openai, gemini, or a HuggingFace model ID)",
+        ),
+    ] = None,
+    embedding_model_name: Annotated[
+        str | None,
+        typer.Option(
+            "--embedding-model-name",
+            help="Optional model name override (for qwen/embeddinggemma/openai/gemini) or custom HF model ID when --embedding-model=custom-hf",
+        ),
+    ] = None,
     config_path: Annotated[
         str | None,
         typer.Option(help="Path to semantic search configuration file"),
     ] = None,
 ) -> None:
+    """Deprecated alias for `embeddings warmup`."""
+    _warn_deprecated_command(
+        "zotero-mcp download-embeddings", "zotero-mcp embeddings warmup"
+    )
+    _run_embeddings_warmup(
+        embedding_backend=embedding_model,
+        embedding_model=embedding_model_name,
+        config=config_path,
+    )
+
+
+def _run_index_status(config: str | None) -> None:
     """Show semantic search database status."""
     setup_zotero_environment()
 
@@ -519,8 +789,8 @@ def db_status(
 
     # Determine config path
     resolved_config_path = (
-        Path(config_path)
-        if config_path
+        Path(config)
+        if config
         else Path.home() / ".config" / "zotero-mcp" / "config.json"
     )
 
@@ -554,28 +824,35 @@ def db_status(
         raise typer.Exit(code=1)
 
 
-@app.command("db-inspect")
-def db_inspect(
-    limit: Annotated[
-        int,
-        typer.Option(help="How many records to show (default: 20)"),
-    ] = 20,
-    filter_text: Annotated[
+@index_app.command("status")
+def index_status(
+    config: Annotated[
         str | None,
-        typer.Option("--filter", help="Substring to match in title or creators"),
+        typer.Option("--config", help="Path to semantic search configuration file"),
     ] = None,
-    show_documents: Annotated[
-        bool,
-        typer.Option("--show-documents", help="Show beginning of stored document text"),
-    ] = False,
-    stats: Annotated[
-        bool,
-        typer.Option("--stats", help="Show aggregate stats (formerly db-stats)"),
-    ] = False,
+) -> None:
+    """Show semantic search index status."""
+    _run_index_status(config=config)
+
+
+@app.command("db-status", hidden=True)
+def db_status(
     config_path: Annotated[
         str | None,
         typer.Option(help="Path to semantic search configuration file"),
     ] = None,
+) -> None:
+    """Deprecated alias for `index status`."""
+    _warn_deprecated_command("zotero-mcp db-status", "zotero-mcp index status")
+    _run_index_status(config=config_path)
+
+
+def _run_index_inspect(
+    limit: int,
+    filter_text: str | None,
+    show_documents: bool,
+    stats: bool,
+    config: str | None,
 ) -> None:
     """Inspect indexed documents or show aggregate stats for the semantic DB."""
     setup_zotero_environment()
@@ -584,8 +861,8 @@ def db_inspect(
 
     # Determine config path
     resolved_config_path = (
-        Path(config_path)
-        if config_path
+        Path(config)
+        if config
         else Path.home() / ".config" / "zotero-mcp" / "config.json"
     )
 
@@ -686,20 +963,77 @@ def db_inspect(
         raise typer.Exit(code=1)
 
 
-@app.command()
-def update(
-    check_only: Annotated[
-        bool,
-        typer.Option("--check-only", help="Only check for updates without installing"),
-    ] = False,
-    force: Annotated[
-        bool,
-        typer.Option("--force", help="Force update even if already up to date"),
-    ] = False,
-    method: Annotated[
-        Literal["pip", "uv", "conda", "pipx"] | None,
-        typer.Option(help="Override auto-detected installation method"),
+@index_app.command("inspect")
+def index_inspect(
+    limit: Annotated[
+        int,
+        typer.Option(help="How many records to show (default: 20)"),
+    ] = 20,
+    filter_text: Annotated[
+        str | None,
+        typer.Option("--filter", help="Substring to match in title or creators"),
     ] = None,
+    show_documents: Annotated[
+        bool,
+        typer.Option("--show-documents", help="Show beginning of stored document text"),
+    ] = False,
+    stats: Annotated[
+        bool,
+        typer.Option("--stats", help="Show aggregate stats (formerly db-stats)"),
+    ] = False,
+    config: Annotated[
+        str | None,
+        typer.Option("--config", help="Path to semantic search configuration file"),
+    ] = None,
+) -> None:
+    """Inspect semantic search index contents."""
+    _run_index_inspect(
+        limit=limit,
+        filter_text=filter_text,
+        show_documents=show_documents,
+        stats=stats,
+        config=config,
+    )
+
+
+@app.command("db-inspect", hidden=True)
+def db_inspect(
+    limit: Annotated[
+        int,
+        typer.Option(help="How many records to show (default: 20)"),
+    ] = 20,
+    filter_text: Annotated[
+        str | None,
+        typer.Option("--filter", help="Substring to match in title or creators"),
+    ] = None,
+    show_documents: Annotated[
+        bool,
+        typer.Option("--show-documents", help="Show beginning of stored document text"),
+    ] = False,
+    stats: Annotated[
+        bool,
+        typer.Option("--stats", help="Show aggregate stats (formerly db-stats)"),
+    ] = False,
+    config_path: Annotated[
+        str | None,
+        typer.Option(help="Path to semantic search configuration file"),
+    ] = None,
+) -> None:
+    """Deprecated alias for `index inspect`."""
+    _warn_deprecated_command("zotero-mcp db-inspect", "zotero-mcp index inspect")
+    _run_index_inspect(
+        limit=limit,
+        filter_text=filter_text,
+        show_documents=show_documents,
+        stats=stats,
+        config=config_path,
+    )
+
+
+def _run_self_update(
+    check_only: bool,
+    force: bool,
+    method: Literal["pip", "uv", "conda", "pipx"] | None,
 ) -> None:
     """Update zotero-mcp to the latest version."""
     from zotero_mcp.updater import update_zotero_mcp
@@ -735,7 +1069,7 @@ def update(
                 print("• All configurations have been preserved")
                 print("• Restart Claude Desktop if it's running")
                 print("• Your semantic search database is intact")
-                print("• Run 'zotero-mcp version' to verify the update")
+                print("• Run 'zotero-mcp self version' to verify the update")
             else:
                 print("❌ Update failed!")
                 print(f"Error: {result.get('message', 'Unknown error')}")
@@ -753,16 +1087,65 @@ def update(
         raise typer.Exit(code=1)
 
 
-@app.command()
-def version() -> None:
+@self_app.command("update")
+def self_update(
+    check_only: Annotated[
+        bool,
+        typer.Option("--check-only", help="Only check for updates without installing"),
+    ] = False,
+    force: Annotated[
+        bool,
+        typer.Option("--force", help="Force update even if already up to date"),
+    ] = False,
+    method: Annotated[
+        Literal["pip", "uv", "conda", "pipx"] | None,
+        typer.Option(help="Override auto-detected installation method"),
+    ] = None,
+) -> None:
+    """Update zotero-mcp to the latest version."""
+    _run_self_update(check_only=check_only, force=force, method=method)
+
+
+@app.command(hidden=True)
+def update(
+    check_only: Annotated[
+        bool,
+        typer.Option("--check-only", help="Only check for updates without installing"),
+    ] = False,
+    force: Annotated[
+        bool,
+        typer.Option("--force", help="Force update even if already up to date"),
+    ] = False,
+    method: Annotated[
+        Literal["pip", "uv", "conda", "pipx"] | None,
+        typer.Option(help="Override auto-detected installation method"),
+    ] = None,
+) -> None:
+    """Deprecated alias for `self update`."""
+    _warn_deprecated_command("zotero-mcp update", "zotero-mcp self update")
+    _run_self_update(check_only=check_only, force=force, method=method)
+
+
+def _run_self_version() -> None:
     """Print version information."""
     from zotero_mcp._version import __version__
 
     print(f"Zotero MCP v{__version__}")
 
 
-@app.command("setup-info")
-def setup_info() -> None:
+@self_app.command("version")
+def self_version() -> None:
+    """Print version information."""
+    _run_self_version()
+
+
+@app.command(hidden=True)
+def version() -> None:
+    """Top-level version alias."""
+    _run_self_version()
+
+
+def _run_config_show() -> None:
     """Show installation path and configuration info for MCP clients."""
     # Setup Zotero environment variables
     setup_zotero_environment()
@@ -858,7 +1241,7 @@ def setup_info() -> None:
         try:
             from zotero_mcp.semantic_search import create_semantic_search
 
-            # Get database status (similar to db-status command)
+            # Get database status (similar to index status command)
             search = create_semantic_search(str(config_path))
             status = search.get_database_status()
 
@@ -891,7 +1274,20 @@ def setup_info() -> None:
             print(f"  Error: {e}")
     else:
         print("  Status: ⚠️ Not configured")
-        print("  💡 Run 'zotero-mcp setup' to configure semantic search")
+        print("  💡 Run 'zotero-mcp config init' to configure semantic search")
+
+
+@config_app.command("show")
+def config_show() -> None:
+    """Show installation and configuration info for MCP clients."""
+    _run_config_show()
+
+
+@app.command("setup-info", hidden=True)
+def setup_info() -> None:
+    """Deprecated alias for `config show`."""
+    _warn_deprecated_command("zotero-mcp setup-info", "zotero-mcp config show")
+    _run_config_show()
 
 
 def main() -> None:

@@ -366,7 +366,7 @@ class ChromaClient:
 
         if self.embedding_mismatch_behavior == "error":
             raise RuntimeError(
-                f"{message} Run 'zotero-mcp update-db --force-rebuild' or set "
+                f"{message} Run 'zotero-mcp index sync --force-rebuild' or set "
                 "ZOTERO_EMBEDDING_MISMATCH_BEHAVIOR=reset."
             )
 

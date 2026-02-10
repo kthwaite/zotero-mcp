@@ -479,7 +479,7 @@ def setup_semantic_search(
     # Configure update frequency
     _ui_section("Database Update Configuration")
     _ui_print("Configure how often the semantic search database is updated:")
-    _ui_print("1. Manual - Update only when you run 'zotero-mcp update-db'")
+    _ui_print("1. Manual - Update only when you run 'zotero-mcp index sync'")
     _ui_print("2. Auto - Automatically update on server startup")
     _ui_print("3. Daily - Automatically update once per day")
     _ui_print("4. Every N days - Automatically update every N days")
@@ -855,7 +855,7 @@ def run_setup(
             if semantic_config_changed:
                 print("\nSemantic search configuration complete!")
                 print(f"Configuration saved to: {semantic_config_path}")
-                print("\nTo initialize the database, run: zotero-mcp update-db")
+                print("\nTo initialize the database, run: zotero-mcp index sync")
                 return 0
             print("\nSemantic search configuration left unchanged.")
             return 0
@@ -879,7 +879,7 @@ def run_setup(
             if save_semantic_search_config(new_semantic_config, semantic_config_path):
                 print("\nSemantic search configuration complete!")
                 print(f"Configuration saved to: {semantic_config_path}")
-                print("\nTo initialize the database, run: zotero-mcp update-db")
+                print("\nTo initialize the database, run: zotero-mcp index sync")
                 return 0
             print("\nSemantic search configuration failed.")
             return 1
@@ -981,7 +981,7 @@ def run_setup(
                 print(
                     "\nNote: You changed semantic search settings. Consider rebuilding the DB:"
                 )
-                print("  zotero-mcp update-db --force-rebuild")
+                print("  zotero-mcp index sync --force-rebuild")
             return 0
 
         assert resolved_config_path is not None
@@ -1007,17 +1007,17 @@ def run_setup(
                     "embedding model",
                 )
                 print(
-                    "- To change the configuration, run: zotero-mcp setup --semantic-config-only"
+                    "- To change the configuration, run: zotero-mcp config init --semantic-config-only"
                 )
                 print(
                     "- The config file is located at: ~/.config/zotero-mcp/config.json"
                 )
                 print(
-                    "- You may need to rebuild your database: zotero-mcp update-db --force-rebuild"
+                    "- You may need to rebuild your database: zotero-mcp index sync --force-rebuild"
                 )
             else:
                 print("\nSemantic Search:")
-                print("- To update the database, run: zotero-mcp update-db")
+                print("- To update the database, run: zotero-mcp index sync")
                 print(
                     "- Use zotero_semantic_search tool in Claude for AI-powered search"
                 )
