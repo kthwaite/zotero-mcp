@@ -1016,7 +1016,7 @@ def advanced_search(
             try:
                 zot.delete_saved_search([search_key])
             except Exception as cleanup_error:
-                ctx.warn(f"Error cleaning up saved search: {str(cleanup_error)}")
+                ctx.warning(f"Error cleaning up saved search: {str(cleanup_error)}")
 
         # Format the results
         if not results:
@@ -1160,7 +1160,7 @@ def get_annotations(
                                     ).strip()
                                     break
                         except Exception as e:
-                            ctx.warn(
+                            ctx.warning(
                                 f"Error extracting citation key from Extra field: {e}"
                             )
 
@@ -1181,7 +1181,7 @@ def get_annotations(
                                             citation_key = result["citekey"]
                                             break
                             except Exception as e:
-                                ctx.warn(f"Error searching for citation key: {e}")
+                                ctx.warning(f"Error searching for citation key: {e}")
 
                         # Process annotations if citation key found
                         if citation_key:
@@ -1261,11 +1261,11 @@ def get_annotations(
                                     f"Retrieved {len(better_bibtex_annotations)} annotations via Better BibTeX"
                                 )
                             except Exception as e:
-                                ctx.warn(
+                                ctx.warning(
                                     f"Error processing Better BibTeX annotations: {e}"
                                 )
                 except Exception as bibtex_error:
-                    ctx.warn(f"Error initializing Better BibTeX: {bibtex_error}")
+                    ctx.warning(f"Error initializing Better BibTeX: {bibtex_error}")
 
             # Fallback to Zotero API annotations
             if not better_bibtex_annotations:
@@ -1281,7 +1281,7 @@ def get_annotations(
                         f"Retrieved {len(zotero_api_annotations)} annotations via Zotero API"
                     )
                 except Exception as api_error:
-                    ctx.warn(f"Error retrieving Zotero API annotations: {api_error}")
+                    ctx.warning(f"Error retrieving Zotero API annotations: {api_error}")
 
             # PDF Extraction fallback
             if use_pdf_extraction and not (
@@ -1367,7 +1367,7 @@ def get_annotations(
                             f"Retrieved {len(pdf_annotations)} annotations via PDF extraction"
                         )
                 except Exception as pdf_error:
-                    ctx.warn(f"Error during PDF annotation extraction: {pdf_error}")
+                    ctx.warning(f"Error during PDF annotation extraction: {pdf_error}")
 
             # Combine annotations from all sources
             annotations = (
