@@ -93,7 +93,7 @@ A tunnel makes your locally running `zotero-mcp` server securely available to a 
     ```bash
     # Make sure your Zotero environment variables are set first!
     # e.g., export ZOTERO_LOCAL=true
-    zotero-mcp serve --transport sse --host 0.0.0.0 --port 8000
+    zotero-mcp server start --transport sse --host 0.0.0.0 --port 8000
     ```
 
 Important: you should probably leave this terminal open in order to ensure tunnel traffic is successfully transiting to the server.
@@ -151,7 +151,7 @@ To set up Zotero MCP with Chorus.sh:
 
 1. **Find your installation path**:
    - For uv: typically `/Users/USERNAME/.pyenv/versions/3.12.8/bin/zotero-mcp` on macOS
-   - For other methods: use `zotero-mcp --setup-info` to get the exact path and configuration details
+   - For other methods: use `zotero-mcp config show` to get the exact path and configuration details
 
 2. **Configure in Chorus.sh preferences**:
    - **Command**: Enter the full path to your zotero-mcp installation
@@ -223,7 +223,7 @@ Some functionality will not work for local libraries due to the distinct differe
 Switching installs or install methods (sometimes to deal with failed installs), as well as toggling between search options, can sometimes lead to database problems. These can frequently be solved with:
 
 ```bash
-zotero-mcp update-db --force-rebuild
+zotero-mcp index sync --force-rebuild
 ```
 
 Other than time waiting for the rebuild, there is generally little to no risk involved in triggering the rebuild - so if you're experiencing database-related issues, it's worth trying this command.

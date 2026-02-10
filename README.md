@@ -59,14 +59,14 @@
 
 ```bash
 uv tool install "git+https://github.com/54yyyu/zotero-mcp.git"
-zotero-mcp setup  # Auto-configure (Claude Desktop supported)
+zotero-mcp config init  # Auto-configure (Claude Desktop supported)
 ```
 
 #### Installing via pip
 
 ```bash
 pip install git+https://github.com/54yyyu/zotero-mcp.git
-zotero-mcp setup  # Auto-configure (Claude Desktop supported)
+zotero-mcp config init  # Auto-configure (Claude Desktop supported)
 ```
 
 ### Installing via Smithery
@@ -83,10 +83,10 @@ Keep zotero-mcp up to date with the smart update command:
 
 ```bash
 # Check for updates
-zotero-mcp update --check-only
+zotero-mcp self update --check-only
 
 # Update to latest version (preserves all configurations)
-zotero-mcp update
+zotero-mcp self update
 ```
 
 ## 🧠 Semantic Search
@@ -99,20 +99,20 @@ During setup or separately, configure semantic search:
 
 ```bash
 # Configure during initial setup (recommended)
-zotero-mcp setup
+zotero-mcp config init
 
 # Launch full-screen setup wizard (Textual TUI)
-zotero-mcp setup --tui
+zotero-mcp config init --tui
 
 # Or configure semantic search separately
-zotero-mcp setup --semantic-config-only
+zotero-mcp config init --semantic-config-only
 ```
 
 **Available Embedding Models:**
 - **MiniLM (default / `minilm`)**: Free, runs locally, good for most use cases (`all-MiniLM-L6-v2`)
 - **Qwen (`qwen`)**: Local HuggingFace model (`Qwen/Qwen3-Embedding-0.6B`)
 - **EmbeddingGemma (`embeddinggemma`)**: Local HuggingFace model (`google/embeddinggemma-300m`)
-- **Custom HuggingFace (`custom-hf`)**: Any local/remote HF model ID via `--embedding-model-name`
+- **Custom HuggingFace (`custom-hf`)**: Any local/remote HF model ID via `--embedding-model`
 - **OpenAI (`openai`)**: API-based (`text-embedding-3-small` or `text-embedding-3-large`)
 - **Gemini (`gemini`)**: API-based (`models/text-embedding-004` or experimental models)
 
@@ -120,18 +120,18 @@ You can preselect models from the CLI:
 
 ```bash
 # Non-default local model
-zotero-mcp setup --semantic-config-only --embedding-model qwen
+zotero-mcp config init --semantic-config-only --embedding-backend qwen
 
 # Custom HuggingFace model
-zotero-mcp setup --semantic-config-only --embedding-model custom-hf \
-  --embedding-model-name sentence-transformers/all-mpnet-base-v2
+zotero-mcp config init --semantic-config-only --embedding-backend custom-hf \
+  --embedding-model sentence-transformers/all-mpnet-base-v2
 
 # Optional: pre-download local embedding weights now to avoid first-run lag
-zotero-mcp download-embeddings
+zotero-mcp embeddings warmup
 ```
 
 **Update Frequency Options:**
-- **Manual**: Update only when you run `zotero-mcp update-db`
+- **Manual**: Update only when you run `zotero-mcp index sync`
 - **Auto on startup**: Update database every time the server starts
 - **Daily**: Update once per day automatically
 - **Every N days**: Set custom interval
@@ -142,19 +142,19 @@ After setup, initialize your search database:
 
 ```bash
 # Build the semantic search database (fast, metadata-only)
-zotero-mcp update-db
+zotero-mcp index sync
 
 # Build with full-text extraction (slower, more comprehensive)
-zotero-mcp update-db --fulltext
+zotero-mcp index sync --fulltext
 
 # Use your custom zotero.sqlite path
-zotero-mcp update-db --fulltext --db-path "/Your_custom_path/zotero.sqlite"
-
-If your configured embedding model changes (for example MiniLM → Qwen), Zotero MCP now detects the mismatch and resets the Chroma collection by default so new embeddings are created with the selected model. You can still use `--force-rebuild` to proactively rebuild everything.
+zotero-mcp index sync --fulltext --db-path "/Your_custom_path/zotero.sqlite"
 
 # Check database status
-zotero-mcp db-status
+zotero-mcp index status
 ```
+
+If your configured embedding model changes (for example MiniLM → Qwen), Zotero MCP now detects the mismatch and resets the Chroma collection by default so new embeddings are created with the selected model. You can still use `--force-rebuild` to proactively rebuild everything.
 
 **Example Semantic Queries in your AI assistant:**
 - *"Find research similar to machine learning concepts in neuroscience"*
@@ -183,7 +183,7 @@ After installation, either:
 
 1. **Auto-configure** (recommended):
    ```bash
-   zotero-mcp setup
+   zotero-mcp config init
    ```
 
 2. **Manual configuration**:
@@ -252,7 +252,7 @@ Cherry Studio also provides a visual configuration method for general settings a
 For accessing your Zotero library via the web API (useful for remote setups):
 
 ```bash
-zotero-mcp setup --no-local --api-key YOUR_API_KEY --library-id YOUR_LIBRARY_ID
+zotero-mcp config init --mode web --api-key YOUR_API_KEY --library-id YOUR_LIBRARY_ID
 ```
 
 ### Environment Variables
@@ -278,36 +278,40 @@ zotero-mcp setup --no-local --api-key YOUR_API_KEY --library-id YOUR_LIBRARY_ID
 
 ```bash
 # Run the server directly
-zotero-mcp serve
+zotero-mcp server start
 
 # Specify transport method
-zotero-mcp serve --transport stdio|streamable-http|sse
+zotero-mcp server start --transport stdio|streamable-http|sse
 
 # Setup and configuration
-zotero-mcp setup --help                    # Get help on setup options
-zotero-mcp setup --tui                     # Launch full-screen Textual setup wizard
-zotero-mcp setup --semantic-config-only    # Configure only semantic search
-zotero-mcp setup --semantic-config-only --embedding-model minilm|qwen|embeddinggemma|custom-hf|openai|gemini
-zotero-mcp setup --semantic-config-only --embedding-model-name MODEL_NAME
-zotero-mcp setup-info                      # Show installation path and config info for MCP clients
+zotero-mcp config init --help                                  # Get help on setup options
+zotero-mcp config init --tui                                   # Launch full-screen Textual setup wizard
+zotero-mcp config init --semantic-config-only                  # Configure only semantic search
+zotero-mcp config init --semantic-config-only --embedding-backend minilm|qwen|embeddinggemma|custom-hf|openai|gemini
+zotero-mcp config init --semantic-config-only --embedding-model MODEL_NAME
+zotero-mcp config show                                         # Show installation path and config info for MCP clients
 
 # Updates and maintenance
-zotero-mcp update                          # Update to latest version
-zotero-mcp update --check-only             # Check for updates without installing
-zotero-mcp update --force                  # Force update even if up to date
+zotero-mcp self update                         # Update to latest version
+zotero-mcp self update --check-only            # Check for updates without installing
+zotero-mcp self update --force                 # Force update even if up to date
 
 # Semantic search database management
-zotero-mcp download-embeddings             # Pre-download/warm local embedding model weights
-zotero-mcp update-db                       # Update semantic search database (fast, metadata-only)
-zotero-mcp update-db --fulltext             # Update with full-text extraction (comprehensive but slower)
-zotero-mcp update-db --force-rebuild       # Force complete database rebuild
-zotero-mcp update-db --fulltext --force-rebuild  # Rebuild with full-text extraction
-zotero-mcp update-db --fulltext --db-path "your_path_to/zotero.sqlite" # Customize your zotero database path
-zotero-mcp db-status                       # Show database status and info
+zotero-mcp embeddings warmup                   # Pre-download/warm local embedding model weights
+zotero-mcp index sync                          # Update semantic search database (fast, metadata-only)
+zotero-mcp index sync --fulltext               # Update with full-text extraction (comprehensive but slower)
+zotero-mcp index sync --force-rebuild          # Force complete database rebuild
+zotero-mcp index sync --fulltext --force-rebuild  # Rebuild with full-text extraction
+zotero-mcp index sync --fulltext --db-path "your_path_to/zotero.sqlite" # Customize your zotero database path
+zotero-mcp index status                        # Show database status and info
+zotero-mcp index inspect                       # Inspect indexed records / stats
 
 # General
-zotero-mcp version                         # Show current version
+zotero-mcp self version                        # Show current version
+zotero-mcp version                             # Top-level alias
 ```
+
+> Legacy top-level commands (`setup`, `serve`, `update-db`, etc.) still work for now and print deprecation warnings.
 
 ## 📑 PDF Annotation Extraction
 
@@ -357,19 +361,19 @@ The first time you use PDF annotation features, the necessary tools will be auto
 - **Can't connect to library**: Check your API key and library ID if using web API
 - **Full text not available**: Make sure you're using Zotero 7+ for local full-text access
 - **Local library limitations**: Some functionality (tagging, library modifications) may not work with local JS API. Consider using web library setup for full functionality. (See the [docs](docs/getting-started.md#local-library-limitations) for more info.)
-- **Installation/search option switching issues**: Database problems from changing install methods or search options can often be resolved with `zotero-mcp update-db --force-rebuild`
+- **Installation/search option switching issues**: Database problems from changing install methods or search options can often be resolved with `zotero-mcp index sync --force-rebuild`
 
 ### Semantic Search Issues
-- **"Missing required environment variables" when running update-db**: Run `zotero-mcp setup` to configure your environment, or the CLI will automatically load settings from your MCP client config (e.g., Claude Desktop)
+- **"Missing required environment variables" when running index sync**: Run `zotero-mcp config init` to configure your environment, or the CLI will automatically load settings from your MCP client config (e.g., Claude Desktop)
 - **ChromaDB warnings**: Update to the latest version - deprecation warnings have been fixed
-- **Database update takes long**: By default, `update-db` is fast (metadata-only). For comprehensive indexing with full-text, use `--fulltext` flag. Use `--limit` parameter for testing: `zotero-mcp update-db --limit 100`
-- **Server startup is slow with local embedding models**: Pre-download model weights once with `zotero-mcp download-embeddings`
-- **Semantic search returns no results**: Ensure the database is initialized with `zotero-mcp update-db` and check status with `zotero-mcp db-status`
-- **Limited search quality**: For better semantic search results, use `zotero-mcp update-db --fulltext` to index full-text content (requires local Zotero setup)
+- **Database update takes long**: By default, `index sync` is fast (metadata-only). For comprehensive indexing with full-text, use `--fulltext` flag. Use `--limit` parameter for testing: `zotero-mcp index sync --limit 100`
+- **Server startup is slow with local embedding models**: Pre-download model weights once with `zotero-mcp embeddings warmup`
+- **Semantic search returns no results**: Ensure the database is initialized with `zotero-mcp index sync` and check status with `zotero-mcp index status`
+- **Limited search quality**: For better semantic search results, use `zotero-mcp index sync --fulltext` to index full-text content (requires local Zotero setup)
 - **OpenAI/Gemini API errors**: Verify your API keys are correctly set and have sufficient credits/quota
 
 ### Update Issues
-- **Update command fails**: Check your internet connection and try `zotero-mcp update --force`
+- **Update command fails**: Check your internet connection and try `zotero-mcp self update --force`
 - **Configuration lost after update**: The update process preserves configs automatically, but check `~/.config/zotero-mcp/` for backup files
 
 ## 📄 License
