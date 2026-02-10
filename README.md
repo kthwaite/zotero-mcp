@@ -125,6 +125,9 @@ zotero-mcp setup --semantic-config-only --embedding-model qwen
 # Custom HuggingFace model
 zotero-mcp setup --semantic-config-only --embedding-model custom-hf \
   --embedding-model-name sentence-transformers/all-mpnet-base-v2
+
+# Optional: pre-download local embedding weights now to avoid first-run lag
+zotero-mcp download-embeddings
 ```
 
 **Update Frequency Options:**
@@ -147,7 +150,7 @@ zotero-mcp update-db --fulltext
 # Use your custom zotero.sqlite path
 zotero-mcp update-db --fulltext --db-path "/Your_custom_path/zotero.sqlite"
 
-If you have embedding confilts when using `zotero-mcp update-db --fulltext`, use `--force-rebuild` to force a rebuild.
+If your configured embedding model changes (for example MiniLM → Qwen), Zotero MCP now detects the mismatch and resets the Chroma collection by default so new embeddings are created with the selected model. You can still use `--force-rebuild` to proactively rebuild everything.
 
 # Check database status
 zotero-mcp db-status
@@ -261,7 +264,8 @@ zotero-mcp setup --no-local --api-key YOUR_API_KEY --library-id YOUR_LIBRARY_ID
 - `ZOTERO_LIBRARY_TYPE`: The type of library (user or group, default: user)
 
 **Semantic Search:**
-- `ZOTERO_EMBEDDING_MODEL`: Embedding model to use (default, openai, gemini)
+- `ZOTERO_EMBEDDING_MODEL`: Embedding model to use (default, qwen, embeddinggemma, openai, gemini, or custom HF model ID)
+- `ZOTERO_EMBEDDING_MISMATCH_BEHAVIOR`: What to do if an existing collection was built with a different embedding (`reset` (default), `reuse`, `error`)
 - `OPENAI_API_KEY`: Your OpenAI API key (for OpenAI embeddings)
 - `OPENAI_EMBEDDING_MODEL`: OpenAI model name (text-embedding-3-small, text-embedding-3-large)
 - `OPENAI_BASE_URL`: Custom OpenAI endpoint URL (optional, for use with compatible APIs)
@@ -293,6 +297,7 @@ zotero-mcp update --check-only             # Check for updates without installin
 zotero-mcp update --force                  # Force update even if up to date
 
 # Semantic search database management
+zotero-mcp download-embeddings             # Pre-download/warm local embedding model weights
 zotero-mcp update-db                       # Update semantic search database (fast, metadata-only)
 zotero-mcp update-db --fulltext             # Update with full-text extraction (comprehensive but slower)
 zotero-mcp update-db --force-rebuild       # Force complete database rebuild
@@ -358,6 +363,7 @@ The first time you use PDF annotation features, the necessary tools will be auto
 - **"Missing required environment variables" when running update-db**: Run `zotero-mcp setup` to configure your environment, or the CLI will automatically load settings from your MCP client config (e.g., Claude Desktop)
 - **ChromaDB warnings**: Update to the latest version - deprecation warnings have been fixed
 - **Database update takes long**: By default, `update-db` is fast (metadata-only). For comprehensive indexing with full-text, use `--fulltext` flag. Use `--limit` parameter for testing: `zotero-mcp update-db --limit 100`
+- **Server startup is slow with local embedding models**: Pre-download model weights once with `zotero-mcp download-embeddings`
 - **Semantic search returns no results**: Ensure the database is initialized with `zotero-mcp update-db` and check status with `zotero-mcp db-status`
 - **Limited search quality**: For better semantic search results, use `zotero-mcp update-db --fulltext` to index full-text content (requires local Zotero setup)
 - **OpenAI/Gemini API errors**: Verify your API keys are correctly set and have sufficient credits/quota

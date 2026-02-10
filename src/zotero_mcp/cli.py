@@ -379,6 +379,132 @@ def update_db(
         raise typer.Exit(code=1)
 
 
+@app.command("download-embeddings")
+def download_embeddings(
+    embedding_model: Annotated[
+        str | None,
+        typer.Option(
+            "--embedding-model",
+            help="Embedding model/backend to warm up (minilm, qwen, embeddinggemma, custom-hf, openai, gemini, or a HuggingFace model ID)",
+        ),
+    ] = None,
+    embedding_model_name: Annotated[
+        str | None,
+        typer.Option(
+            "--embedding-model-name",
+            help="Optional model name override (for qwen/embeddinggemma/openai/gemini) or custom HF model ID when --embedding-model=custom-hf",
+        ),
+    ] = None,
+    config_path: Annotated[
+        str | None,
+        typer.Option(help="Path to semantic search configuration file"),
+    ] = None,
+) -> None:
+    """Pre-download local embedding weights to avoid first-run startup lag."""
+    setup_zotero_environment()
+
+    import chromadb
+
+    from zotero_mcp.chroma_client import (
+        HuggingFaceEmbeddingFunction,
+        load_chroma_config,
+    )
+
+    # Determine config path
+    resolved_config_path = (
+        Path(config_path)
+        if config_path
+        else Path.home() / ".config" / "zotero-mcp" / "config.json"
+    )
+
+    try:
+        config = load_chroma_config(str(resolved_config_path))
+
+        resolved_model = str(config.get("embedding_model", "default"))
+        configured_model = resolved_model
+        resolved_embedding_config = dict(config.get("embedding_config", {}) or {})
+
+        cli_model = embedding_model.strip() if embedding_model else None
+        cli_model_name = embedding_model_name.strip() if embedding_model_name else None
+
+        # Apply CLI overrides
+        if cli_model:
+            if cli_model == "minilm":
+                resolved_model = "default"
+                resolved_embedding_config = {}
+            elif cli_model == "custom-hf":
+                if not cli_model_name:
+                    print(
+                        "Error: --embedding-model-name is required when --embedding-model=custom-hf"
+                    )
+                    raise typer.Exit(code=1)
+                resolved_model = cli_model_name
+                resolved_embedding_config = {}
+            else:
+                resolved_model = cli_model
+                if resolved_model != configured_model:
+                    resolved_embedding_config = {}
+
+        # Optional model_name override for known model families
+        if cli_model_name and cli_model != "custom-hf":
+            if resolved_model in {"qwen", "embeddinggemma", "openai", "gemini"}:
+                resolved_embedding_config["model_name"] = cli_model_name
+            elif not cli_model:
+                print(
+                    "Note: --embedding-model-name was ignored because the configured "
+                    f"embedding model ('{resolved_model}') does not use model_name overrides."
+                )
+
+        if resolved_model == "openai":
+            model_name = resolved_embedding_config.get(
+                "model_name", "text-embedding-3-small"
+            )
+            print(
+                f"Embedding backend is OpenAI ({model_name}); no local weights to download."
+            )
+            return
+
+        if resolved_model == "gemini":
+            model_name = resolved_embedding_config.get(
+                "model_name", "models/text-embedding-004"
+            )
+            print(
+                f"Embedding backend is Gemini ({model_name}); no local weights to download."
+            )
+            return
+
+        if resolved_model == "default":
+            print("Warming default MiniLM embedding model cache (all-MiniLM-L6-v2)...")
+            embedding_function = (
+                chromadb.utils.embedding_functions.DefaultEmbeddingFunction()
+            )
+            embedding_function(["zotero-mcp embedding warmup"])
+            print("✅ Default embedding model is ready.")
+            return
+
+        if resolved_model == "qwen":
+            hf_model_name = resolved_embedding_config.get(
+                "model_name", "Qwen/Qwen3-Embedding-0.6B"
+            )
+        elif resolved_model == "embeddinggemma":
+            hf_model_name = resolved_embedding_config.get(
+                "model_name", "google/embeddinggemma-300m"
+            )
+        else:
+            hf_model_name = resolved_model
+
+        print(f"Warming HuggingFace embedding model cache: {hf_model_name}")
+        embedding_function = HuggingFaceEmbeddingFunction(model_name=hf_model_name)
+        embedding_function(["zotero-mcp embedding warmup"])
+        print(f"✅ Embedding model is ready: {hf_model_name}")
+
+    except typer.Exit:
+        raise
+    except Exception as e:
+        print(f"Error pre-downloading embedding model: {e}")
+        raise typer.Exit(code=1)
+
+
 @app.command("db-status")
 def db_status(
     config_path: Annotated[
