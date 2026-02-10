@@ -5,20 +5,39 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, field
+from typing import TypedDict
 
 logger = logging.getLogger(__name__)
+
+
+class AnnotationRecord(TypedDict):
+    """Normalized annotation record returned by fetch_annotations."""
+
+    key: str
+    annotation_type: str
+    text: str
+    comment: str
+    color: str
+    parent_item: str
+    tags: list[str]
+    page: int | None
+    page_label: str | None
+    attachment_title: str | None
+    color_category: str | None
+    source: str
+    has_image: bool
 
 
 @dataclass
 class AnnotationsResult:
     """Structured result from annotation retrieval."""
 
-    annotations: list[dict] = field(default_factory=list)
+    annotations: list[AnnotationRecord] = field(default_factory=list)
     parent_title: str = "Untitled Item"
     error: str | None = None
 
 
-def _normalize_annotation(raw: dict) -> dict:
+def _normalize_annotation(raw: dict) -> AnnotationRecord:
     """Normalize a Zotero annotation dict into a flat record."""
     data = raw.get("data", {})
     return {

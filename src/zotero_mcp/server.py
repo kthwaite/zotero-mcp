@@ -1264,7 +1264,7 @@ def search_notes(query: str, limit: int | str | None = 20, *, ctx: Context) -> s
         # Format matching notes
         for note in raw_notes:
             data = note.get("data", {})
-            note_text = data.get("note", "")
+            note_text = clean_html(data.get("note", ""))
 
             if query_lower not in note_text.lower():
                 continue
@@ -1282,8 +1282,7 @@ def search_notes(query: str, limit: int | str | None = 20, *, ctx: Context) -> s
                 except Exception:
                     parent_info = f" (parent key: {parent_key})"
 
-            # Clean and excerpt the note text around the query
-            note_text = clean_html(note_text)
+            # Excerpt the note text around the query
             text_lower = note_text.lower()
             pos = text_lower.find(query_lower)
             if pos >= 0:
