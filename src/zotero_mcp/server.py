@@ -1224,17 +1224,7 @@ def get_notes(
     description="Search for notes across your Zotero library.",
 )
 def search_notes(query: str, limit: int | str | None = 20, *, ctx: Context) -> str:
-    """
-    Search for notes in your Zotero library.
-
-    Args:
-        query: Search query string
-        limit: Maximum number of results to return
-        ctx: MCP context
-
-    Returns:
-        Markdown-formatted search results
-    """
+    """Search for notes and annotations in your Zotero library."""
     try:
         if not query.strip():
             return "Error: Search query cannot be empty"
@@ -1242,125 +1232,111 @@ def search_notes(query: str, limit: int | str | None = 20, *, ctx: Context) -> s
         ctx.info(f"Searching Zotero notes for '{query}'")
         zot = get_zotero_client()
 
-        # Search for notes and annotations
-
         if isinstance(limit, str):
             limit = int(limit)
 
-        # First search notes
-        zot.add_parameters(q=query, itemType="note", limit=limit or 20)
-        notes = zot.items()
+        effective_limit = limit or 20
+        query_lower = query.lower()
 
-        # Then search annotations (reusing the get_annotations function)
-        annotation_results = get_annotations(
-            item_key=None,  # Search all annotations
+        # 1. Search notes via Zotero API
+        zot.add_parameters(q=query, itemType="note", limit=effective_limit)
+        raw_notes = zot.items()
+
+        # 2. Search annotations via service (structured data, no markdown parsing)
+        anno_result = fetch_annotations(
+            item_key=None,
             use_pdf_extraction=True,
-            limit=limit or 20,
-            ctx=ctx,
+            limit=effective_limit,
         )
 
-        # Parse the annotation results to extract annotation items
-        # This is a bit hacky and depends on the exact formatting of get_annotations
-        # You might want to modify get_annotations to return a more structured result
-        annotation_lines = annotation_results.split("\n")
-        current_annotation = None
-        annotations = []
+        # Filter annotations by query match on text or comment
+        matching_annotations = [
+            a
+            for a in anno_result.annotations
+            if query_lower in (a.get("text") or "").lower()
+            or query_lower in (a.get("comment") or "").lower()
+        ]
 
-        for line in annotation_lines:
-            if line.startswith("## "):
-                if current_annotation:
-                    annotations.append(current_annotation)
-                current_annotation = {"lines": [line], "type": "annotation"}
-            elif current_annotation is not None:
-                current_annotation["lines"].append(line)
-
-        if current_annotation:
-            annotations.append(current_annotation)
-
-        # Format results
+        # Format output
         output = [f"# Search Results for '{query}'", ""]
+        result_num = 0
 
-        # Filter and highlight notes
-        query_lower = query.lower()
-        note_results = []
-
-        for note in notes:
+        # Format matching notes
+        for note in raw_notes:
             data = note.get("data", {})
-            note_text = data.get("note", "").lower()
+            note_text = data.get("note", "")
 
-            if query_lower in note_text:
-                # Prepare full note details
-                note_result = {"type": "note", "key": note.get("key", ""), "data": data}
-                note_results.append(note_result)
+            if query_lower not in note_text.lower():
+                continue
 
-        # Combine and sort results
-        all_results = note_results + annotations
+            result_num += 1
+            key = note.get("key", "")
 
-        for i, result in enumerate(all_results, 1):
-            if result["type"] == "note":
-                # Note formatting
-                data = result["data"]
-                key = result["key"]
-
-                # Parent item context
-                parent_info = ""
-                if parent_key := data.get("parentItem"):
-                    try:
-                        parent = zot.item(parent_key)
-                        parent_title = parent["data"].get("title", "Untitled")
-                        parent_info = f' (from "{parent_title}")'
-                    except Exception:
-                        parent_info = f" (parent key: {parent_key})"
-
-                # Note text with query highlight
-                note_text = data.get("note", "")
-                note_text = note_text.replace("<p>", "").replace("</p>", "\n\n")
-                note_text = note_text.replace("<br/>", "\n").replace("<br>", "\n")
-
-                # Highlight query in note text
+            # Parent context
+            parent_info = ""
+            if parent_key := data.get("parentItem"):
                 try:
-                    # Find first occurrence of query and extract context
-                    text_lower = note_text.lower()
-                    pos = text_lower.find(query_lower)
-                    if pos >= 0:
-                        # Extract context around the query
-                        start = max(0, pos - 100)
-                        end = min(len(note_text), pos + 200)
-                        context = note_text[start:end]
-
-                        # Highlight the query in the context
-                        highlighted = context.replace(
-                            context[
-                                context.lower().find(
-                                    query_lower
-                                ) : context.lower().find(query_lower) + len(query)
-                            ],
-                            f"**{context[context.lower().find(query_lower) : context.lower().find(query_lower) + len(query)]}**",
-                        )
-
-                        note_text = highlighted + "..."
+                    parent = zot.item(parent_key)
+                    parent_title = parent["data"].get("title", "Untitled")
+                    parent_info = f' (from "{parent_title}")'
                 except Exception:
-                    # Fallback to first 500 characters if highlighting fails
-                    note_text = note_text[:500] + "..."
+                    parent_info = f" (parent key: {parent_key})"
 
-                output.append(f"## Note {i}{parent_info}")
-                output.append(f"**Key:** {key}")
+            # Clean and excerpt the note text around the query
+            note_text = clean_html(note_text)
+            text_lower = note_text.lower()
+            pos = text_lower.find(query_lower)
+            if pos >= 0:
+                start = max(0, pos - 100)
+                end = min(len(note_text), pos + len(query) + 200)
+                excerpt = note_text[start:end]
+                if start > 0:
+                    excerpt = "..." + excerpt
+                if end < len(note_text):
+                    excerpt = excerpt + "..."
+            else:
+                excerpt = note_text[:500] + ("..." if len(note_text) > 500 else "")
 
-                # Tags
-                if tags := data.get("tags"):
-                    tag_list = [f"`{tag['tag']}`" for tag in tags]
-                    if tag_list:
-                        output.append(f"**Tags:** {' '.join(tag_list)}")
+            output.append(f"## Note {result_num}{parent_info}")
+            output.append(f"**Key:** {key}")
 
-                output.append(f"**Content:**\n{note_text}")
-                output.append("")
+            if tags := data.get("tags"):
+                tag_list = [f"`{t['tag']}`" for t in tags]
+                output.append(f"**Tags:** {' '.join(tag_list)}")
 
-            elif result["type"] == "annotation":
-                # Add the entire annotation block
-                output.extend(result["lines"])
-                output.append("")
+            output.append(f"**Content:**\n{excerpt}")
+            output.append("")
 
-        return "\n".join(output) if output else f"No results found for '{query}'"
+        # Format matching annotations
+        for anno in matching_annotations:
+            result_num += 1
+
+            parent_info = ""
+            if anno["parent_item"]:
+                try:
+                    parent = zot.item(anno["parent_item"])
+                    ptitle = parent["data"].get("title", "Untitled")
+                    parent_info = f' (from "{ptitle}")'
+                except Exception:
+                    parent_info = f" (parent key: {anno['parent_item']})"
+
+            output.append(f"## Annotation {result_num}{parent_info}")
+            output.append(f"**Type:** {anno['annotation_type']}")
+            output.append(f"**Key:** {anno['key']}")
+
+            if anno.get("text"):
+                output.append(f"**Text:** {anno['text']}")
+            if anno.get("comment"):
+                output.append(f"**Comment:** {anno['comment']}")
+            if anno.get("tags"):
+                output.append(f"**Tags:** {' '.join(f'`{t}`' for t in anno['tags'])}")
+
+            output.append("")
+
+        if result_num == 0:
+            return f"No results found for '{query}'"
+
+        return "\n".join(output)
 
     except Exception as e:
         ctx.error(f"Error searching notes: {str(e)}")
