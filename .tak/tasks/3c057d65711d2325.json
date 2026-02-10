@@ -1,0 +1,15 @@
+{
+  "id": 4325000891802133285,
+  "title": "Add Chroma method to list all indexed document IDs",
+  "description": "Add a method to chroma_client.py (or semantic_search.py) that returns the set of all document IDs currently in the Chroma collection. This is needed to compute which IDs are stale.",
+  "status": "pending",
+  "kind": "task",
+  "parent": 15682596573566026993,
+  "planning": {
+    "priority": "high",
+    "estimate": "xs",
+    "risk": "low"
+  },
+  "created_at": "2026-02-10T21:58:48.385981Z",
+  "updated_at": "2026-02-10T21:58:48.385981Z"
+}

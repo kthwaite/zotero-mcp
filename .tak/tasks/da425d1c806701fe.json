@@ -1,0 +1,22 @@
+{
+  "id": 15727235225725895166,
+  "title": "P2.3: Docs consistency + troubleshooting quality",
+  "description": "Fix Python version mismatch (README says 3.10+, pyproject.toml says >=3.12). Remove/qualify unsupported claims (e.g. 'update annotations'). Add failure-mode matrix and diagnostic command docs.",
+  "status": "pending",
+  "kind": "task",
+  "parent": 529211430995578861,
+  "contract": {
+    "objective": "No known capability mismatch between docs and implementation",
+    "acceptance_criteria": [
+      "README Python version matches pyproject.toml",
+      "No unsupported capability claims in docs"
+    ]
+  },
+  "planning": {
+    "priority": "low",
+    "estimate": "s",
+    "risk": "low"
+  },
+  "created_at": "2026-02-10T22:24:16.083932Z",
+  "updated_at": "2026-02-10T22:24:16.083932Z"
+}

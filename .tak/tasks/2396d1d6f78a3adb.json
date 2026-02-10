@@ -1,0 +1,28 @@
+{
+  "id": 2564467759040314075,
+  "title": "Add mocked BBT JSON-RPC integration tests",
+  "description": "Create tests/test_better_bibtex_client.py with mocked JSON-RPC responses for: item.search (dict and list formats), get_attachments (various shapes), search_citekeys (empty, single, multiple results). Test graceful degradation on error responses.",
+  "status": "pending",
+  "kind": "task",
+  "parent": 11923783451951238275,
+  "depends_on": [
+    {
+      "id": 5213636529516366985
+    },
+    {
+      "id": 8475385311329340805
+    }
+  ],
+  "contract": {
+    "verification": [
+      "uv run pytest tests/test_better_bibtex_client.py"
+    ]
+  },
+  "planning": {
+    "priority": "high",
+    "estimate": "s",
+    "risk": "low"
+  },
+  "created_at": "2026-02-10T21:03:43.068359Z",
+  "updated_at": "2026-02-10T22:24:37.753876Z"
+}

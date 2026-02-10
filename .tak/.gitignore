@@ -1,0 +1,5 @@
+index.db
+*.lock
+artifacts/
+verification_results/
+runtime/

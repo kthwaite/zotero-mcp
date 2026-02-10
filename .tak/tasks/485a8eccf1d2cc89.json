@@ -1,0 +1,20 @@
+{
+  "id": 5213636529516366985,
+  "title": "Fix get_attachments return type mismatch",
+  "description": "get_attachments() declares return type list[dict[str, Any]] but can return dict from _make_request(). Either normalize the return value or fix the type annotation. Also accept non-int library_id where needed.",
+  "status": "pending",
+  "kind": "bug",
+  "parent": 11923783451951238275,
+  "contract": {
+    "verification": [
+      "uv run ty check src/zotero_mcp/better_bibtex_client.py"
+    ]
+  },
+  "planning": {
+    "priority": "critical",
+    "estimate": "xs",
+    "risk": "low"
+  },
+  "created_at": "2026-02-10T21:03:43.059500Z",
+  "updated_at": "2026-02-10T21:03:43.059500Z"
+}

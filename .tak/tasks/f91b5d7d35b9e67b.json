@@ -1,0 +1,29 @@
+{
+  "id": 17950043532168914555,
+  "title": "Create .github/workflows/ci.yml",
+  "description": "Add a CI workflow triggered on pull_request that runs: (1) uv run ruff check src/, (2) uv run ty check src/, (3) uv run pytest. Use uv for dependency installation. Matrix on Python 3.12+. Do not modify release.yml publish behavior.",
+  "status": "pending",
+  "kind": "task",
+  "parent": 10806279613778399116,
+  "depends_on": [
+    {
+      "id": 5213636529516366985
+    },
+    {
+      "id": 8475385311329340805
+    },
+    {
+      "id": 14558115274757134115
+    },
+    {
+      "id": 16781169167148767704
+    }
+  ],
+  "planning": {
+    "priority": "high",
+    "estimate": "s",
+    "risk": "low"
+  },
+  "created_at": "2026-02-10T21:13:22.612823Z",
+  "updated_at": "2026-02-10T21:50:43.369792Z"
+}

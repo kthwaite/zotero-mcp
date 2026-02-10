@@ -1,0 +1,29 @@
+{
+  "id": 8402914848871364226,
+  "title": "P2.2: Complete write operations roadmap",
+  "description": "Add update_note tool (edit existing note by key), delete_note tool (with safety flag), validate local vs web capabilities, align docs with actual supported write operations.",
+  "status": "pending",
+  "kind": "task",
+  "parent": 529211430995578861,
+  "contract": {
+    "objective": "Full create/update/delete lifecycle for notes",
+    "acceptance_criteria": [
+      "Create/update/delete note lifecycle works in supported modes"
+    ],
+    "verification": [
+      "uv run pytest",
+      "uv run ty check src/zotero_mcp/server.py"
+    ],
+    "constraints": [
+      "Validate capabilities per mode (local vs web) and return explicit errors",
+      "Docs must not over-promise capabilities"
+    ]
+  },
+  "planning": {
+    "priority": "medium",
+    "estimate": "m",
+    "risk": "medium"
+  },
+  "created_at": "2026-02-10T22:24:16.074768Z",
+  "updated_at": "2026-02-10T22:24:16.074768Z"
+}

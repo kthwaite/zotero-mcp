@@ -1,0 +1,20 @@
+{
+  "id": 14558115274757134115,
+  "title": "Fix ruff lint errors in semantic_search.py",
+  "description": "Remove unused imports: pyzotero.zotero (line 18) and get_local_zotero_reader (line 23) in src/zotero_mcp/semantic_search.py. Verify no other ruff errors remain.",
+  "status": "pending",
+  "kind": "bug",
+  "parent": 10806279613778399116,
+  "contract": {
+    "verification": [
+      "uv run ruff check src/"
+    ]
+  },
+  "planning": {
+    "priority": "high",
+    "estimate": "xs",
+    "risk": "low"
+  },
+  "created_at": "2026-02-10T21:13:22.596033Z",
+  "updated_at": "2026-02-10T21:13:22.596033Z"
+}

@@ -1,0 +1,13 @@
+{
+  "id": 3638091412078839803,
+  "title": "P0: Stabilize core behavior",
+  "description": "Complete remaining P0 items: harden BBT integration, add CI quality gates. Fixes type errors and adds PR-level guardrails.",
+  "status": "pending",
+  "kind": "epic",
+  "planning": {
+    "priority": "critical",
+    "estimate": "l"
+  },
+  "created_at": "2026-02-10T20:55:50.943623Z",
+  "updated_at": "2026-02-10T20:55:50.943623Z"
+}

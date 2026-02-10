@@ -1,0 +1,30 @@
+{
+  "id": 15682596573566026993,
+  "title": "P1.1: Implement add/update/delete reconciliation for semantic DB",
+  "description": "The current upsert-only strategy never removes stale vectors when Zotero items are deleted. Add reconciliation: list indexed IDs, compute stale_ids = indexed - source, delete stale in batches, track accurate stats.",
+  "status": "pending",
+  "kind": "task",
+  "parent": 13854475969951439831,
+  "contract": {
+    "objective": "Semantic search DB stays in sync with Zotero library including deletions",
+    "acceptance_criteria": [
+      "Deleting a Zotero item removes it from semantic search after update",
+      "Stats reflect real add/update/delete counts"
+    ],
+    "verification": [
+      "uv run pytest tests/ -k semantic",
+      "uv run ty check src/zotero_mcp/semantic_search.py"
+    ],
+    "constraints": [
+      "Batch deletes to avoid ChromaDB timeouts",
+      "Stats must distinguish added/updated/deleted/skipped"
+    ]
+  },
+  "planning": {
+    "priority": "high",
+    "estimate": "m",
+    "risk": "medium"
+  },
+  "created_at": "2026-02-10T21:53:43.072082Z",
+  "updated_at": "2026-02-10T21:53:43.072082Z"
+}

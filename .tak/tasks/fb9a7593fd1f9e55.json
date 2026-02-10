@@ -1,0 +1,28 @@
+{
+  "id": 18129932528400703061,
+  "title": "P2.1: Security for remote/tunnel scenarios",
+  "description": "Add optional bearer token auth for HTTP/SSE transports. Add CLI/env config for allowed origins and bind safety defaults. Update docs with secure deployment recipes.",
+  "status": "pending",
+  "kind": "task",
+  "parent": 529211430995578861,
+  "contract": {
+    "objective": "HTTP/SSE transports can be secured with bearer token auth",
+    "acceptance_criteria": [
+      "Unauthorized requests are rejected when auth is enabled"
+    ],
+    "verification": [
+      "uv run pytest",
+      "uv run ty check src/zotero_mcp/server.py"
+    ],
+    "constraints": [
+      "Auth is opt-in — stdio transport unaffected"
+    ]
+  },
+  "planning": {
+    "priority": "medium",
+    "estimate": "m",
+    "risk": "medium"
+  },
+  "created_at": "2026-02-10T22:24:16.065691Z",
+  "updated_at": "2026-02-10T22:24:16.065691Z"
+}

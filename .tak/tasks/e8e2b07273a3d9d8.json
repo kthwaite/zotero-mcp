@@ -1,0 +1,20 @@
+{
+  "id": 16781169167148767704,
+  "title": "Fix ty type errors in chroma_client.py",
+  "description": "chroma_client.py:57 has incorrect argument type to OpenAI client. Fix the type error. Note: BBT type errors are tracked separately under P0.3.",
+  "status": "pending",
+  "kind": "bug",
+  "parent": 10806279613778399116,
+  "contract": {
+    "verification": [
+      "uv run ty check src/zotero_mcp/chroma_client.py"
+    ]
+  },
+  "planning": {
+    "priority": "high",
+    "estimate": "xs",
+    "risk": "low"
+  },
+  "created_at": "2026-02-10T21:13:22.604105Z",
+  "updated_at": "2026-02-10T21:13:22.604105Z"
+}

@@ -1,0 +1,20 @@
+{
+  "id": 8561779715835912771,
+  "title": "Implement stale ID detection and batch deletion in update_database",
+  "description": "In semantic_search.py update_database(), after upserting: (1) compute stale_ids = indexed_ids - source_ids, (2) delete stale IDs from Chroma in batches, (3) add deleted_items counter to stats dict.",
+  "status": "pending",
+  "kind": "task",
+  "parent": 15682596573566026993,
+  "depends_on": [
+    {
+      "id": 4325000891802133285
+    }
+  ],
+  "planning": {
+    "priority": "high",
+    "estimate": "s",
+    "risk": "medium"
+  },
+  "created_at": "2026-02-10T21:58:48.394404Z",
+  "updated_at": "2026-02-10T22:00:18.829393Z"
+}

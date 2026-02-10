@@ -1,0 +1,13 @@
+{
+  "id": 529211430995578861,
+  "title": "P2: Product hardening and UX",
+  "description": "Remote auth, complete write operations, docs consistency. Lower priority — build on stable P0/P1 foundation.",
+  "status": "pending",
+  "kind": "epic",
+  "planning": {
+    "priority": "medium",
+    "estimate": "xl"
+  },
+  "created_at": "2026-02-10T20:55:55.828582Z",
+  "updated_at": "2026-02-10T20:55:55.828582Z"
+}

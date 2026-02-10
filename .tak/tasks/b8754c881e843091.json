@@ -1,0 +1,30 @@
+{
+  "id": 13291614022765129873,
+  "title": "P1.4: Add optional structured output mode for MCP tools",
+  "description": "Add output_format parameter (markdown|json) to key tools. Keep markdown as default. Define stable JSON response schemas for search, content, notes, annotations. Document schema examples.",
+  "status": "pending",
+  "kind": "task",
+  "parent": 13854475969951439831,
+  "contract": {
+    "objective": "Key MCP tools can return structured JSON for machine consumers",
+    "acceptance_criteria": [
+      "Existing clients continue working unchanged",
+      "JSON mode validated by tests for at least 5 major tools"
+    ],
+    "verification": [
+      "uv run pytest",
+      "uv run ty check src/zotero_mcp/server.py"
+    ],
+    "constraints": [
+      "Markdown remains default — no breaking changes for existing clients",
+      "JSON schemas must be stable and documented"
+    ]
+  },
+  "planning": {
+    "priority": "medium",
+    "estimate": "l",
+    "risk": "medium"
+  },
+  "created_at": "2026-02-10T22:08:53.318527Z",
+  "updated_at": "2026-02-10T22:08:53.318527Z"
+}

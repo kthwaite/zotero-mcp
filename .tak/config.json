@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "mesh": {
+    "registration_ttl_secs": 900,
+    "reservation_ttl_secs": 1800,
+    "heartbeat_interval_secs": 30
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": 3971899301202911421,
+  "title": "Add tests for semantic DB reconciliation",
+  "description": "Test that: deleted Zotero items are removed from Chroma after update, stats accurately reflect adds/updates/deletes/skips, batch deletion works for large stale sets.",
+  "status": "pending",
+  "kind": "task",
+  "parent": 15682596573566026993,
+  "depends_on": [
+    {
+      "id": 8561779715835912771
+    }
+  ],
+  "contract": {
+    "verification": [
+      "uv run pytest tests/ -k semantic"
+    ]
+  },
+  "planning": {
+    "priority": "high",
+    "estimate": "s",
+    "risk": "low"
+  },
+  "created_at": "2026-02-10T21:58:48.402741Z",
+  "updated_at": "2026-02-10T22:00:18.840351Z"
+}

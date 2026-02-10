@@ -1,0 +1,13 @@
+{
+  "id": 13854475969951439831,
+  "title": "P1: Semantic search correctness + interoperability",
+  "description": "Implement proper DB reconciliation, make startup non-blocking, add optional JSON output mode for MCP tools.",
+  "status": "pending",
+  "kind": "epic",
+  "planning": {
+    "priority": "high",
+    "estimate": "xl"
+  },
+  "created_at": "2026-02-10T20:55:54.526696Z",
+  "updated_at": "2026-02-10T20:55:54.526696Z"
+}

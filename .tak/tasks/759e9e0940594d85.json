@@ -1,0 +1,20 @@
+{
+  "id": 8475385311329340805,
+  "title": "Fix search_citekeys dict slicing bug",
+  "description": "search_citekeys() at line ~213 uses search_results[:limit] on a dict. Dicts don't support slicing — causes TypeError at runtime. Convert response to list or iterate differently.",
+  "status": "pending",
+  "kind": "bug",
+  "parent": 11923783451951238275,
+  "contract": {
+    "verification": [
+      "uv run ty check src/zotero_mcp/better_bibtex_client.py"
+    ]
+  },
+  "planning": {
+    "priority": "critical",
+    "estimate": "xs",
+    "risk": "low"
+  },
+  "created_at": "2026-02-10T21:03:43.047377Z",
+  "updated_at": "2026-02-10T21:03:43.047377Z"
+}

@@ -1,0 +1,28 @@
+{
+  "id": 1260846260756040528,
+  "title": "P1.2: Make startup auto-update truly non-blocking",
+  "description": "background_update() in server.py calls sync update_database() directly in an async context, blocking the event loop. Wrap in asyncio.to_thread(), add timeout/cancellation handling.",
+  "status": "pending",
+  "kind": "task",
+  "parent": 13854475969951439831,
+  "contract": {
+    "objective": "Background DB update never blocks the asyncio event loop",
+    "acceptance_criteria": [
+      "Server tool availability is immediate even during auto-update"
+    ],
+    "verification": [
+      "uv run pytest",
+      "uv run ty check src/zotero_mcp/server.py"
+    ],
+    "constraints": [
+      "Errors logged but never block server startup"
+    ]
+  },
+  "planning": {
+    "priority": "high",
+    "estimate": "s",
+    "risk": "low"
+  },
+  "created_at": "2026-02-10T22:08:53.307733Z",
+  "updated_at": "2026-02-10T22:08:53.307733Z"
+}

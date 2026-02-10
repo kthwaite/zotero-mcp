@@ -1,0 +1,26 @@
+{
+  "id": 11923783451951238275,
+  "title": "P0.3: Harden Better BibTeX integration",
+  "description": "Fix type errors in better_bibtex_client.py and add mocked integration tests. search_citekeys slices a dict (TypeError at runtime), get_attachments returns wrong type.",
+  "status": "pending",
+  "kind": "task",
+  "parent": 3638091412078839803,
+  "contract": {
+    "objective": "BBT client methods are type-safe and tested against representative JSON-RPC responses",
+    "verification": [
+      "uv run ty check src/zotero_mcp/better_bibtex_client.py",
+      "uv run pytest tests/test_better_bibtex_client.py"
+    ],
+    "constraints": [
+      "Existing BBT callers in server.py must not break",
+      "Failures degrade gracefully to Zotero API annotation path"
+    ]
+  },
+  "planning": {
+    "priority": "critical",
+    "estimate": "m",
+    "risk": "medium"
+  },
+  "created_at": "2026-02-10T21:02:17.421276Z",
+  "updated_at": "2026-02-10T21:02:17.421276Z"
+}
